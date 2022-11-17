@@ -14,6 +14,8 @@ import TokenPayload from './interfaces/token-payload.interface';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import JwtAuthGuard from './guards/jwt-auth.guard';
+import { UserValidateException } from 'src/helper/exceptions/custom-exception';
+import { ResponseCode } from 'src/utils/response.code';
 
 @Injectable()
 export class AuthService {
@@ -23,25 +25,37 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  public async register(registerDto: RegisterDto) {
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+  /**
+   * Đăng ký người dùng mới
+   * @author : Tr4nLa4m (10-11-2022)
+   * @param registerDto Đối tượng dữ liệu cho đăng ký
+   * @returns {Promise}
+   */
+  public async register(registerDto: RegisterDto): Promise<any> {
 
     try {
+      // Thực hiện băm mật khẩu thô
+      const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+
+      // Tạo người dùng mới
       const newUser = await this.userService.createUser({
         ...registerDto,
         password: hashedPassword,
       });
 
       return newUser;
+      
     } catch (error) {
       if (error?.code == 'ER_DUP_ENTRY') {
-        throw new HttpException(
-          'Email has already been taken',
+        throw new UserValidateException(
+          ResponseCode.USER_EXISTED.Message_VN,
           HttpStatus.BAD_REQUEST,
+          ResponseCode.USER_EXISTED.Code
         );
       }
 
-      throw new HttpException('Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException('Có lỗi xảy ra', HttpStatus.INTERNAL_SERVER_ERROR,
+      { cause : new Error(error)});
     }
   }
 
