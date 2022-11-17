@@ -62,7 +62,7 @@ export class MailService {
     await this.userService.makeUserVerified(email);
   }
 
-  public async resendConfirmationEmail(id: number) {
+  public async resendConfirmationEmail(id: string) {
     const user = await this.userService.getUserById(id);
 
     if (user.isVerified) {

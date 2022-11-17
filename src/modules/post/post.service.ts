@@ -26,7 +26,7 @@ export class PostService {
   }
 
   async create(
-    userId: number,
+    userId: string,
     createPostDto: CreatePostDto,
     file: Express.Multer.File,
   ): Promise<PostEntity> {
@@ -34,7 +34,7 @@ export class PostService {
 
     const author = await this.userService.getUserById(userId);
     delete author.password;
-    delete author.currentRefreshToken;
+    delete author.refreshToken;
     delete author.email;
     newPost.author = author;
 
