@@ -45,6 +45,7 @@ export class AuthService {
     }
   }
 
+
   public async validateUserAndPassword(email: string, rawPassword: string) {
     const user = await this.userService.getUserByEmail(email);
     await this.checkPassword(rawPassword, user.password);
@@ -60,7 +61,7 @@ export class AuthService {
     }
   }
 
-  public getCookieAccessToken(id: number) {
+  public getCookieAccessToken(id: string) {
     const payload: TokenPayload = { id };
     const token = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_ACCESS_TOKEN_SECRET'),
@@ -74,7 +75,7 @@ export class AuthService {
     )}`;
   }
 
-  public getCookieRefreshToken(id: number) {
+  public getCookieRefreshToken(id: string) {
     const payload: TokenPayload = { id };
     const token = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_REFRESH_TOKEN_SECRET'),

@@ -49,7 +49,7 @@ export class AvatarProcessor {
 
   @Process(RESIZING_AVATAR)
   public async resizeAvatar(
-    job: Job<{ id: number; file: Express.Multer.File }>,
+    job: Job<{ id: string; file: Express.Multer.File }>,
   ) {
     this.logger.log('Resizing and saving avatar');
 

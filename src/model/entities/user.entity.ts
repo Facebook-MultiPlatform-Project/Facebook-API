@@ -6,70 +6,76 @@ import {
   PrimaryGeneratedColumn,
   BaseEntity,
   OneToMany,
+  CreateDateColumn,
 } from 'typeorm';
+import BlockUserEntity from './block-user.entity';
 import PostEntity from './post.entity';
 
+/**
+ * Entity người dùng
+ * @author : Tr4nLa4m (16-11-2022)
+ */
 @Entity()
 export class UserEntity extends BaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
+  // ID người dùng
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
+  // Tên người dùng
   @Column({
     default: null,
   })
   name: string;
 
+  // Mật khẩu tài khoản -- hash
   @Column({})
-  @Exclude()
+  @Exclude() // Thực hiện loại bỏ khỏi response khi trả về dữ liệu
   password: string;
 
+  // Email tài khoản
   @Column({
     unique: true,
   })
   email: string;
 
+  // Link avata tài khoản
   @Column({
     default: DEFAULT_AVATAR,
   })
   avatar: string;
 
-  @Column({
-    default: null,
-  })
-  location: string;
-
-  @Column({
-    default: null,
-  })
-  bio: string;
-
+  // Ngày sinh
   @Column('date')
   birthday: Date;
 
-  @Column({
-    default: null,
-  })
-  facebook: string;
+  // Giới tính - 1 là nam, 0 là nữ, 2 là other
+  @Column({ type: 'smallint' })
+  gender: number;
 
-  @Column({
-    default: null,
-  })
-  instagram: string;
-
-  @Column({
-    default: null,
-  })
-  linkedin: string;
-
+  // Đã xác thực
   @Column({ default: false })
   isVerified: boolean;
 
+  // Token
   @Column({
     nullable: true,
   })
   @Exclude()
-  currentRefreshToken: string;
+  refreshToken: string;
 
+  // Ngày tạo
+  @CreateDateColumn({})
+  createdAt: Date;
+
+  // Ngày sửa tài khoản
+  @Column()
+  modifiedAt: Date;
+
+  // Danh sách ID người chặn
+  @OneToMany(() => BlockUserEntity, (block_user) => block_user.blocker  )
+  blockedIds: BlockUserEntity[];
+
+  // Danh sách bài đăng
   @OneToMany(() => PostEntity, (postEntity) => postEntity.author)
   posts: PostEntity[];
 }

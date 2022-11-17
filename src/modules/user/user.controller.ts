@@ -27,6 +27,13 @@ import { avatarStorageOptions } from './helpers/avatar-storage';
 export class UserController {
   constructor(private userService: UserService) {}
 
+  /**
+   * Thực hiện cập nhật người dùng
+   * @author : Tr4nLa4m (16-11-2022)
+   * @param request Request đầu vào
+   * @param userData Dữ liệu người dùng
+   * @returns {Promise}
+   */
   @Put('update-profile')
   @UseGuards(JwtAuthGuard)
   async updateProfile(
@@ -36,6 +43,12 @@ export class UserController {
     return await this.userService.updateProfile(request.user.id, userData);
   }
 
+  /**
+   * Thực hiện lưu avatar
+   * @param file File ảnh truyền vào
+   * @param request Đối tượng yêu cầu
+   * @returns {Promise}
+   */
   @Post('save-avatar')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file', avatarStorageOptions))

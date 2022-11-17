@@ -18,6 +18,7 @@ export const Modules = [
     entities: [__dirname + '/model/entities/**/*{.ts,.js}'],
     synchronize: true,
     timezone: 'Z',
+    retryAttempts: 5,
   }),
   BullModule.forRoot({
     redis: {

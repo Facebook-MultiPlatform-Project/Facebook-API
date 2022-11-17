@@ -39,7 +39,13 @@ export class UserService {
     );
   }
 
-  async getUserById(id: number) {
+  /**
+   * Thực hiện lấy người dùng thông qua Id
+   * @author : Tr4nLa4m (16-10-2022)
+   * @param id Id của người dùng
+   * @returns {Promise} trả về 1 promise
+   */
+  async getUserById(id: string) {
     const user = await this.userRepo.findOneBy({ id });
 
     if (user) {
@@ -66,31 +72,36 @@ export class UserService {
     await this.userRepo.update({ email }, { isVerified: true });
   }
 
-  async setRefreshToken(refreshToken: string, id: number) {
-    const currentRefreshToken = await bcrypt.hash(refreshToken, 10);
-    await this.userRepo.update(id, { currentRefreshToken });
+  async setRefreshToken(currentToken: string, id: string) {
+    const refreshToken = await bcrypt.hash(currentToken, 10);
+    await this.userRepo.update(id, { refreshToken });
   }
 
-  async getUserIfRefreshTokenValid(refreshToken: string, id: number) {
-    const user = await this.getUserById(id);
+  async getUserIfRefreshTokenValid(refreshToken: string, id: string) {
+    try {
+      const user = await this.getUserById(id);
 
-    const checkRefreshToken = await bcrypt.compare(
-      refreshToken,
-      user.currentRefreshToken,
-    );
+      const checkRefreshToken = await bcrypt.compare(
+        refreshToken,
+        user.refreshToken,
+      );
 
-    if (checkRefreshToken) {
-      return user;
+      if (checkRefreshToken) {
+        return user;
+      }
+    } catch (error) {
+      throw new Error(error);
+      
     }
   }
 
-  async removeRefreshToken(id: number) {
+  async removeRefreshToken(id: string) {
     return this.userRepo.update(id, {
-      currentRefreshToken: null,
+      refreshToken: null,
     });
   }
 
-  async addAvatarToQueue(id: number, file: Express.Multer.File) {
+  async addAvatarToQueue(id: string, file: Express.Multer.File) {
     try {
       this.avatarQueue.add(RESIZING_AVATAR, {
         id,
@@ -101,7 +112,7 @@ export class UserService {
     }
   }
 
-  async deleteAvatar(userId: number) {
+  async deleteAvatar(userId: string) {
     const user = await this.getUserById(userId);
 
     if (user.avatar != DEFAULT_AVATAR) {
@@ -138,16 +149,23 @@ export class UserService {
 
     delete user.email;
     delete user.password;
-    delete user.currentRefreshToken;
+    delete user.refreshToken;
 
     return this.userRepo.save(user);
   }
 
-  async updateProfile(userId: number, userData: UpdateProfileDto) {
+  /**
+   * Thực hiện cập nhật thông tin người dùng
+   * @author : Tr4nLa4m (16-11-2022)
+   * @param userId Id của người dùng
+   * @param userData Dữ liệu người dùng
+   * @returns {Promise} trả về một promise
+   */
+  async updateProfile(userId: string, userData: UpdateProfileDto) {
     let toUpdate = await this.getUserById(userId);
 
     delete toUpdate.password;
-    delete toUpdate.currentRefreshToken;
+    delete toUpdate.refreshToken;
     delete toUpdate.email;
 
     let updated = Object.assign(toUpdate, userData);
