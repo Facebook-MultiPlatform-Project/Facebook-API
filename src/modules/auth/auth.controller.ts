@@ -9,8 +9,12 @@ import {
   Param,
   UseInterceptors,
   ClassSerializerInterceptor,
+  UseFilters,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { TransformInstanceToPlain } from 'class-transformer';
+import { HttpExceptionFilter } from 'src/helper/exceptions/http-exception.filter';
+import { TransformInterceptor } from 'src/helper/interceptors/transform-response.interceptor';
 import { MailService } from '../mail/mail.service';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
@@ -30,7 +34,13 @@ export class AuthController {
     private userService: UserService,
   ) {}
 
-  @Post('register')
+  /**
+   * API đăng ký người dùng mới
+   * @author : Tr4nLa4m (10-11-2022)
+   * @param registerDto Đối tượng dữ liệu cho đăng ký
+   * @returns 
+   */
+  @Post('signup')
   async register(@Body() registerDto: RegisterDto) {
     const user = await this.authService.register(registerDto);
     return this.mailService.sendConfirmationEmail(registerDto.email);

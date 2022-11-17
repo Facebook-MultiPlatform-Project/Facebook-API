@@ -14,21 +14,25 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { of } from 'rxjs';
-import { UserEntity } from 'src/model/entities/user.entity';
 import { UserService } from 'src/modules/user/user.service';
 import JwtAuthGuard from '../auth/guards/jwt-auth.guard';
 import { join } from 'path';
 import RequestWithUser from '../auth/interfaces/request-with-user.interface';
 import UpdateProfileDto from './dtos/update-profile.dto';
 import { avatarStorageOptions } from './helpers/avatar-storage';
+import { Response } from 'express';
 
+/**
+ * API cho người dùng
+ * @author : Tr4nLa4m (10-11-2022)
+ */
 @ApiTags('user')
 @Controller('user')
 export class UserController {
   constructor(private userService: UserService) {}
 
   /**
-   * Thực hiện cập nhật người dùng
+   * Thực hiện cập nhật thông tin người dùng
    * @author : Tr4nLa4m (16-11-2022)
    * @param request Request đầu vào
    * @param userData Dữ liệu người dùng
@@ -39,7 +43,7 @@ export class UserController {
   async updateProfile(
     @Req() request: RequestWithUser,
     @Body() userData: UpdateProfileDto,
-  ) {
+  ): Promise<any> {
     return await this.userService.updateProfile(request.user.id, userData);
   }
 
@@ -55,13 +59,13 @@ export class UserController {
   async saveAvatar(
     @UploadedFile() file: Express.Multer.File,
     @Req() request: RequestWithUser,
-  ) {
+  ): Promise<any> {
     return await this.userService.addAvatarToQueue(request.user.id, file);
   }
 
   @Get('get-avatar-40x40')
   @UseGuards(JwtAuthGuard)
-  async findAvatar40(@Req() request: RequestWithUser, @Res() res) {
+  async findAvatar40(@Req() request: RequestWithUser, @Res() res : Response) {
     const user = await this.userService.getUserById(request.user.id);
 
     return of(

@@ -1,23 +1,55 @@
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { UserValidateException } from './custom-exception';
+import { HttpAdapterHost } from '@nestjs/core';
+import { ResponseCode } from 'src/utils/response.code';
 
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
-import { Request, Response } from 'express';
+/**
+ * Exception filter bắt mọi thứ exception
+ * @author : Tr4nLa4m (17-11-2022)
+ */
+@Catch()
+export class HttpExceptionFilter implements ExceptionFilter   {
+  // Inject HttpAdapterHost
+  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
 
-@Catch(HttpException)
-export class HttpExceptionFilter implements ExceptionFilter {
+  /**
+   * Xử lý khi bắt được exception
+   * @author : Tr4nLa4m (17-10-2022)
+   * @param exception exception bắt được
+   * @param host host
+   */
+  catch(exception: unknown, host: ArgumentsHost) {
+    // In certain situations `httpAdapter` might not be available in the
+    // constructor method, thus we should resolve it here.
+    const { httpAdapter } = this.httpAdapterHost;
 
-    
-  catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
-    const status = exception.getStatus();
+    const status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const code =
+      exception instanceof UserValidateException
+        ? exception.code
+        : ResponseCode.EXCEPTION_ERROR.Code;
+    const message =
+      exception instanceof HttpException
+        ? exception.message
+        : ResponseCode.EXCEPTION_ERROR.Message_VN;
 
-    response
-      .status(status)
-      .json({
-        statusCode: status,
-        timestamp: new Date().toISOString(),
-        path: request.url,
-      });
+    const responseBody = {
+      code,
+      message,
+      timestamp: new Date().toLocaleString(),
+      path: httpAdapter.getRequestUrl(ctx.getRequest()),
+    };
+
+    httpAdapter.reply(ctx.getResponse(), responseBody, status);
   }
 }
