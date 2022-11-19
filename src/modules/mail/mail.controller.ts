@@ -1,7 +1,6 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UserService } from '../user/user.service';
-import ConfirmEmailDto from './dtos/confirm-email.dto';
 import ResetPasswordEmailDto from './dtos/reset-password-email.dto';
 import { MailService } from './mail.service';
 
@@ -13,12 +12,16 @@ export class MailController {
     private userService: UserService,
   ) {}
 
-  @Post('confirm')
-  async confirm(@Body() confirmData: ConfirmEmailDto) {
-    const email = await this.mailService.decodeConfirmationToken(
-      confirmData.token,
-    );
-    await this.mailService.verifyUserEmail(email);
+  @Get('confirm')
+  async confirm(@Query('token') token: string) {
+    try {
+      const email = await this.mailService.decodeConfirmationToken(token);
+      var res = 0;
+      res = await this.mailService.verifyUserEmail(email);
+      return res;
+    } catch (exception) {
+      throw exception;
+    }
   }
 
   @Post('reset-password')

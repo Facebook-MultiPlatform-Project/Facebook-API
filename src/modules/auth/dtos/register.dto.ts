@@ -3,12 +3,13 @@ import {
   IsNotEmpty,
   IsString,
   Matches,
-  MinLength,
+  MinLength
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
   @ApiProperty({
+    description: 'Email đăng ký',
     required: true,
     type: String,
   })

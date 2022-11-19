@@ -27,7 +27,7 @@ import { UserModule } from '../user/user.module';
           },
           tls: { rejectUnauthorized: false },
         },
-        defaults: { from: 'Fresher K2 Mailer" <test@test.com>' },
+        defaults: { from: 'Facebook Project Mailer" <test@test.com>' },
         template: {
           dir: __dirname + '/templates',
           adapter: new HandlebarsAdapter(),

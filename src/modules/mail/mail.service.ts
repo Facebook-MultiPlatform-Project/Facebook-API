@@ -59,7 +59,11 @@ export class MailService {
       throw new BadRequestException('Email is already confirmed');
     }
 
-    await this.userService.makeUserVerified(email);
+    var res = await this.userService.makeUserVerified(email);
+    if(res === 0){
+      throw new BadRequestException('Xác thực email thất bại');
+    }
+    return res;
   }
 
   public async resendConfirmationEmail(id: string) {
