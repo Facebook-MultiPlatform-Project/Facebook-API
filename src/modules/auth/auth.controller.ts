@@ -10,11 +10,11 @@ import {
   UseInterceptors,
   ClassSerializerInterceptor,
   UseFilters,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { TransformInstanceToPlain } from 'class-transformer';
-import { HttpExceptionFilter } from 'src/helper/exceptions/http-exception.filter';
-import { TransformInterceptor } from 'src/helper/interceptors/transform-response.interceptor';
+import { UserValidateException } from 'src/helper/exceptions/custom-exception';
 import { MailService } from '../mail/mail.service';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
@@ -38,33 +38,48 @@ export class AuthController {
    * API đăng ký người dùng mới
    * @author : Tr4nLa4m (10-11-2022)
    * @param registerDto Đối tượng dữ liệu cho đăng ký
-   * @returns 
+   * @returns
    */
   @Post('signup')
   async register(@Body() registerDto: RegisterDto) {
-    const user = await this.authService.register(registerDto);
-    return this.mailService.sendConfirmationEmail(registerDto.email);
+    try {
+      const user = await this.authService.register(registerDto);
+      this.mailService.sendConfirmationEmail(registerDto.email);
+      return user;
+    } catch (exception : any) {
+      throw exception;
+    }
   }
 
+  /**
+   * API đăng nhập
+   * @author : Tr4nLa4m (10-11-2022)
+   * @param request Request gửi đến
+   * @returns {Promise} user
+   */
   @HttpCode(200)
   @UseGuards(LocalAuthGuard)
   @UseInterceptors(ClassSerializerInterceptor)
   @Post('login')
-  async login(@Req() request: RequestWithUser) {
-    const { user } = request;
-    const accessTokenCookie = this.authService.getCookieAccessToken(user.id);
-    const { cookie: refreshTokenCookie, token: refreshToken } =
-      this.authService.getCookieRefreshToken(user.id);
+  async login(@Req() request: RequestWithUser): Promise<any> {
+    try {
+      const { user } = request;
+      const accessTokenCookie = this.authService.getCookieAccessToken(user.id);
+      const { cookie: refreshTokenCookie, token: refreshToken } =
+        this.authService.getCookieRefreshToken(user.id);
 
-    await this.userService.setRefreshToken(refreshToken, user.id);
-    request.res.setHeader('Set-Cookie', [
-      accessTokenCookie,
-      refreshTokenCookie,
-    ]);
-    // delete user.password;
-    // delete user.currentRefreshToken;
+      await this.userService.setRefreshToken(refreshToken, user.id);
+      request.res.setHeader('Set-Cookie', [
+        accessTokenCookie,
+        refreshTokenCookie,
+      ]);
+      // delete user.password;
+      // delete user.currentRefreshToken;
 
-    return user;
+      return user;
+    } catch (exception : any) {
+      throw exception;
+    }
   }
 
   @UseGuards(JwtAuthGuard)
@@ -91,7 +106,6 @@ export class AuthController {
     return user;
   }
 
-  
   @UseGuards(JwtRefreshGuard)
   @Get('refresh')
   refresh(@Req() request: RequestWithUser) {

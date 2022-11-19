@@ -14,6 +14,8 @@ import { Queue } from 'bull';
 import UpdateProfileDto from './dtos/update-profile.dto';
 import { unlink } from 'fs';
 import * as fs from 'fs';
+import { UserValidateException } from 'src/helper/exceptions/custom-exception';
+import { ResponseCode } from 'src/utils/response.code';
 
 @Injectable()
 export class UserService {
@@ -26,6 +28,12 @@ export class UserService {
     private avatarQueue: Queue,
   ) {}
 
+  /**
+   * Lấy người dùng bởi email
+   * @author : Tr4nLa4m (11-11-2022)
+   * @param email Email người dùng
+   * @returns 
+   */
   async getUserByEmail(email: string) {
     const user = await this.userRepo.findOneBy({ email });
 
@@ -33,9 +41,10 @@ export class UserService {
       return user;
     }
 
-    throw new HttpException(
-      'No user with this email has been found',
+    throw new UserValidateException(
+      ResponseCode.USER_NOT_VALIDATED.Message_VN,
       HttpStatus.NOT_FOUND,
+      ResponseCode.USER_NOT_VALIDATED.Code
     );
   }
 
@@ -45,16 +54,17 @@ export class UserService {
    * @param id Id của người dùng
    * @returns {Promise} trả về 1 promise
    */
-  async getUserById(id: string) {
+  async getUserById(id: string): Promise<any> {
     const user = await this.userRepo.findOneBy({ id });
 
     if (user) {
       return user;
     }
 
-    throw new HttpException(
-      'No user with this ID has been found',
+    throw new UserValidateException(
+      ResponseCode.USER_NOT_VALIDATED.Message_VN,
       HttpStatus.NOT_FOUND,
+      ResponseCode.USER_NOT_VALIDATED.Code,
     );
   }
 
@@ -69,16 +79,38 @@ export class UserService {
   }
 
   async makeUserVerified(email: string) {
-    await this.userRepo.update({ email }, { isVerified: true });
+    const res = await this.userRepo.update({ email }, { isVerified: true });
+    return res.affected;
   }
 
+  /**
+   * Đặt lại refresh token
+   * @author : Tr4nLa4m (10-11-2022)
+   * @param currentToken token
+   * @param id Id người dùng
+   */
   async setRefreshToken(currentToken: string, id: string) {
-    const refreshToken = await bcrypt.hash(currentToken, 10);
-    await this.userRepo.update(id, { refreshToken });
+    try {
+      const refreshToken = await bcrypt.hash(currentToken, 10);
+      await this.userRepo.update(id, { refreshToken });
+    } catch (error) {
+      throw new HttpException(
+        { cause: new Error(error) },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
+  /**
+   * Lấy người dùng nếu Refresh token còn hạn
+   * @author : Tr4nLa4m (10-11-2022)
+   * @param refreshToken Refresh token
+   * @param id Id người dùng
+   * @returns
+   */
   async getUserIfRefreshTokenValid(refreshToken: string, id: string) {
     try {
+      // Lấy người dùng thông qua Id
       const user = await this.getUserById(id);
 
       const checkRefreshToken = await bcrypt.compare(
@@ -90,8 +122,10 @@ export class UserService {
         return user;
       }
     } catch (error) {
-      throw new Error(error);
-      
+      throw new HttpException(
+        { cause: new Error(error) },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 

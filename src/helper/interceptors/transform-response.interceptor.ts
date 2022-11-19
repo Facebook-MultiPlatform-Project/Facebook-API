@@ -32,10 +32,10 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>>
     return next
       .handle()
       .pipe(
-        map(({ code, message, ...data }) => ({
-          data: data,
-          code: code ?? ResponseCode.OK.Code,
-          message: message ?? ResponseCode.OK.Message_VN,
+        map((data) => ({
+          code: ResponseCode.OK.Code,
+          message: ResponseCode.OK.Message_VN,
+          data: data
         })),
       );
   }

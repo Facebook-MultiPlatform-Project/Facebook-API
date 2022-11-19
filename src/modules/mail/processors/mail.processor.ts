@@ -62,7 +62,7 @@ export class MailProcessor {
     });
     const url = `${this.configService.get(
       'FRONTEND',
-    )}/confirm-email?token=${token}`;
+    )}/email/confirm?token=${token}`;
 
     try {
       return this.mailerService.sendMail({

@@ -54,8 +54,7 @@ export class AuthService {
         );
       }
 
-      throw new HttpException('Có lỗi xảy ra', HttpStatus.INTERNAL_SERVER_ERROR,
-      { cause : new Error(error)});
+      throw new HttpException(ResponseCode.EXCEPTION_ERROR.Message_VN, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -67,15 +66,27 @@ export class AuthService {
     return user;
   }
 
+  /**
+   * Kiểm tra trùng mật khẩu
+   * @author : Tr4nLa4m (11-11-2022)
+   * @param rawPassword Password dạng gốc
+   * @param hashedPassword Password đã băm
+   */
   private async checkPassword(rawPassword: string, hashedPassword: string) {
     const isPasswordTrue = await bcrypt.compare(rawPassword, hashedPassword);
 
     if (!isPasswordTrue) {
-      throw new HttpException('Wrong password', HttpStatus.BAD_REQUEST);
+      throw new UserValidateException( "Sai mật khẩu", HttpStatus.BAD_REQUEST, ResponseCode.USER_NOT_VALIDATED.Code);
     }
   }
 
-  public getCookieAccessToken(id: string) {
+  /**
+   * Tạo access token
+   * @author : Tr4nLa4m (10-11-2022)
+   * @param id Id của người dùng
+   * @returns chuỗi access token
+   */
+  public getCookieAccessToken(id: string): string {
     const payload: TokenPayload = { id };
     const token = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_ACCESS_TOKEN_SECRET'),
@@ -89,6 +100,12 @@ export class AuthService {
     )}`;
   }
 
+  /**
+   * Lấy refresh token
+   * @author : Tr4nLa4m (10-11-2022)
+   * @param id Id người dùng
+   * @returns
+   */
   public getCookieRefreshToken(id: string) {
     const payload: TokenPayload = { id };
     const token = this.jwtService.sign(payload, {

@@ -8,6 +8,7 @@ import {
 import { UserValidateException } from './custom-exception';
 import { HttpAdapterHost } from '@nestjs/core';
 import { ResponseCode } from 'src/utils/response.code';
+import { Response } from 'express';
 
 /**
  * Exception filter bắt mọi thứ exception
@@ -43,11 +44,14 @@ export class HttpExceptionFilter implements ExceptionFilter   {
         ? exception.message
         : ResponseCode.EXCEPTION_ERROR.Message_VN;
 
+    const devMsg = exception instanceof HttpException ? exception.getResponse()  : {}
+    
     const responseBody = {
       code,
       message,
       timestamp: new Date().toLocaleString(),
       path: httpAdapter.getRequestUrl(ctx.getRequest()),
+      devMsg
     };
 
     httpAdapter.reply(ctx.getResponse(), responseBody, status);
