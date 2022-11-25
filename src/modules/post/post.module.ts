@@ -1,6 +1,7 @@
 import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import EmotionEntity from 'src/model/entities/emotion.entity';
 import PostEntity from 'src/model/entities/post.entity';
 import { PostRepository } from 'src/model/repositories/post.repository';
 import { UserModule } from '../user/user.module';
@@ -11,7 +12,7 @@ import { PostImageProcessor } from './processors/post-image.processor';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PostEntity]),
+    TypeOrmModule.forFeature([PostEntity, EmotionEntity]),
     BullModule.registerQueue({
       name: POST_IMAGE_QUEUE,
     }),

@@ -71,9 +71,13 @@ export class UserEntity extends BaseEntity {
   @Column()
   modifiedAt: Date;
 
-  // Danh sách ID người chặn
+  // Danh sách ID người bị chặn bởi user hiện tại
   @OneToMany(() => BlockUserEntity, (block_user) => block_user.blocker  )
-  blockedIds: BlockUserEntity[];
+  blockeds: BlockUserEntity[];
+
+  // Danh sách ID người chặn user hiện tại
+  @OneToMany(() => BlockUserEntity, (block_user) => block_user.blocked  )
+  blockers: BlockUserEntity[];
 
   // Danh sách bài đăng
   @OneToMany(() => PostEntity, (postEntity) => postEntity.author)

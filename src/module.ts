@@ -17,6 +17,9 @@ export const Modules = [
     database: 'fresherk2',
     entities: [__dirname + '/model/entities/**/*{.ts,.js}'],
     synchronize: true,
+    // cache: {
+    //   duration: 1000    // thời gian reset lại dữ liệu default là 1s
+    // },
     timezone: 'Z',
     retryAttempts: 5,
   }),

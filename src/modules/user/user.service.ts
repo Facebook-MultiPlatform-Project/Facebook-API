@@ -15,7 +15,7 @@ import UpdateProfileDto from './dtos/update-profile.dto';
 import { unlink } from 'fs';
 import * as fs from 'fs';
 import { UserValidateException } from 'src/helper/exceptions/custom-exception';
-import { ResponseCode } from 'src/utils/response.code';
+import { ResponseCode } from 'src/utils/codes/response.code';
 
 @Injectable()
 export class UserService {
@@ -42,9 +42,8 @@ export class UserService {
     }
 
     throw new UserValidateException(
-      ResponseCode.USER_NOT_VALIDATED.Message_VN,
+      ResponseCode.USER_NOT_VALIDATED,
       HttpStatus.NOT_FOUND,
-      ResponseCode.USER_NOT_VALIDATED.Code
     );
   }
 
@@ -62,9 +61,8 @@ export class UserService {
     }
 
     throw new UserValidateException(
-      ResponseCode.USER_NOT_VALIDATED.Message_VN,
+      ResponseCode.USER_NOT_VALIDATED,
       HttpStatus.NOT_FOUND,
-      ResponseCode.USER_NOT_VALIDATED.Code,
     );
   }
 

@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -42,7 +43,7 @@ export class PostController {
   @Get('posts-by-user')
   @UseGuards(JwtAuthGuard, EmailConfirmGuard)
   async getQuery(
-    @Query('author') author: number,
+    @Query('author') author: string,
     @Query('take') take: number,
     @Query('skip') skip: number,
   ) {
@@ -62,7 +63,20 @@ export class PostController {
 
   @Delete('delete-post/:postId')
   @UseGuards(JwtAuthGuard, EmailConfirmGuard)
-  async deletePost(@Param('postId') postId: number) {
+  async deletePost(@Param('postId') postId: string) {
     return this.postService.deletePost(postId);
+  }
+
+  @Put('like-post/:postId')
+  @UseGuards(JwtAuthGuard, EmailConfirmGuard)
+  async likePost(
+    @Req() request: RequestWithUser,
+    @Param('postId') postId : string){
+    try {
+      const res = await this.postService.likePost(request.user.id, postId);
+      return res;
+    } catch (exception) {
+      throw exception;
+    }
   }
 }
