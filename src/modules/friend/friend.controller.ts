@@ -35,27 +35,28 @@ export class FriendController {
   /**
    * API gửi yêu cầu kết bạn
    * @param request request
-   * @param userId Id người dùng nhận
+   * @param friendDto dữ liệu dto
    * @returns
    */
-  @Post('set-request-friend/:userId')
+  @Post('set-request-friend')
   @UseGuards(JwtAuthGuard)
   async setRequest(
     @Req() request: RequestWithUser,
-    @Param('userId') userId: string,
+    @Body() friendDto: FriendDto,
     @Res() response: Response,
   ) {
     try {
       let sender = request.user;
-      let receiver = await this.userService.getUserById(userId);
+      let receiver = await this.userService.getUserById(friendDto.id);
       const res = await this.friendService.setRequest(sender, receiver);
       return response
         .status(HttpStatus.CREATED)
         .json(res);
     } catch (error) {
-      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        code : 9999,
+      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json({
+        code : error.code ? error.code : 9999,
         message: error.message,
+        path : request.url
       });
     }
   }
