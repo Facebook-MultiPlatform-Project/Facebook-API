@@ -53,7 +53,7 @@ export class UserService {
    * @param id Id của người dùng
    * @returns {Promise} trả về 1 promise
    */
-  async getUserById(id: string): Promise<any> {
+  async getUserById(id: string): Promise<UserEntity> {
     const user = await this.userRepo.findOneBy({ id });
 
     if (user) {
@@ -67,9 +67,10 @@ export class UserService {
   }
 
   async createUser(createUserDto: CreateUserDto) {
-    const newUser = new UserEntity();
-    newUser.email = createUserDto.email;
-    newUser.password = createUserDto.password;
+    const newUser = new UserEntity({
+      email : createUserDto.email,
+      password : createUserDto.password
+    });
 
     await this.userRepo.save(newUser);
 

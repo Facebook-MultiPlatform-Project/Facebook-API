@@ -6,6 +6,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import * as Joi from '@hapi/joi';
 import { MailModule } from './modules/mail/mail.module';
 import { PostModule } from './modules/post/post.module';
+import { FriendModule } from './modules/friend/friend.module';
+
 
 export const Modules = [
   TypeOrmModule.forRoot({
@@ -52,4 +54,5 @@ export const Modules = [
   UserModule,
   AuthModule,
   PostModule,
+  FriendModule,
 ];

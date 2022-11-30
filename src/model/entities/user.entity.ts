@@ -17,6 +17,12 @@ import PostEntity from './post.entity';
  */
 @Entity()
 export class UserEntity extends BaseEntity {
+
+  constructor(partial: Partial<UserEntity>) {
+    super()
+    Object.assign(this, partial);
+  }
+
   // ID người dùng
   @PrimaryGeneratedColumn('uuid')
   id: string;

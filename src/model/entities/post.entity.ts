@@ -7,7 +7,9 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import CommentEntity from './comment.entity';
 import EmotionEntity from './emotion.entity';
+import MediaEntity from './media.entity';
 import UserEntity from './user.entity';
 
 /**
@@ -36,14 +38,16 @@ export class PostEntity extends BaseEntity {
   @Column()
   content: string;
 
-  @Column({
-    default: null,
-  })
-  image: string;
+  @OneToMany(() => MediaEntity, (media) => media.post)
+  medias: MediaEntity[];
 
   // Danh sách ID người thích bài viết
   @OneToMany(() => EmotionEntity, (likes) => likes.post )
   likes: EmotionEntity[];
+
+  // Danh sách Comment
+  @OneToMany(() => CommentEntity, (comment) => comment.post )
+  comments: CommentEntity[];
 }
 
 export default PostEntity;
