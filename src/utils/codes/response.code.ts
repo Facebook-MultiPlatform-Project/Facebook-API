@@ -136,4 +136,13 @@ export const ResponseCode = {
         Message_VN : "Bài đăng bị giới hạn ở một số quốc gia",
         Message_EN : "Limit access"
     },
+
+
+    CUSTOM : (message : string, code : number) => {
+        return {
+            Code: code,
+            Message_VN : message,
+            Message_EN : message
+        }
+    }
 }

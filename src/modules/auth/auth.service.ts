@@ -43,6 +43,11 @@ export class AuthService {
         password: hashedPassword,
       });
 
+      delete newUser.isVerified;
+      delete newUser.password;
+      delete newUser.modifiedAt;
+      delete newUser.refreshToken;
+
       return newUser;
       
     } catch (error) {

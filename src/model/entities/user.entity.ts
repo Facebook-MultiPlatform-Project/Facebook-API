@@ -1,5 +1,5 @@
 import { Exclude } from 'class-transformer';
-import { DEFAULT_AVATAR } from 'src/modules/user/user.constants';
+import { DEFAULT_AVATAR, DEFAULT_COVER } from 'src/modules/user/user.constants';
 import {
   Column,
   Entity,
@@ -49,6 +49,12 @@ export class UserEntity extends BaseEntity {
     default: DEFAULT_AVATAR,
   })
   avatar: string;
+
+  // Link nền tài khoản
+  @Column({
+    default: DEFAULT_COVER,
+  })
+  cover: string;
 
   // Ngày sinh
   @Column('date')

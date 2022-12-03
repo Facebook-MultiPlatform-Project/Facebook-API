@@ -81,9 +81,10 @@ export class FriendController {
         .status(HttpStatus.OK)
         .json(res);
     } catch (error) {
-      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        code : 9999,
+      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json({
+        code : error.code ? error.code : 9999,
         message: error.message,
+        path : request.url
       });
     }
   }
@@ -111,7 +112,7 @@ export class FriendController {
         .status(HttpStatus.OK)
         .json(res);
     } catch (error) {
-      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json({
         code : error.code ? error.code : 9999,
         message: error.message,
         path : request.url

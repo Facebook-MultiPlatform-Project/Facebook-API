@@ -23,6 +23,7 @@ export class UserValidateException extends HttpException {
     super(errorObject.Message_VN, statusCode);
     this.code = errorObject.Code;
   }
+
   //#endregion
 }
 

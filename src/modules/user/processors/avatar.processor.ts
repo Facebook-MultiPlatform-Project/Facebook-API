@@ -15,6 +15,7 @@ import {
   AVATAR_QUEUE,
   DEFAULT_AVATAR,
   RESIZING_AVATAR,
+  RESIZING_COVER,
 } from '../user.constants';
 import { UserService } from '../user.service';
 
@@ -47,6 +48,11 @@ export class AvatarProcessor {
     );
   }
 
+  /**
+   * Quy trình xử lý ảnh đại diện (resize và lưu ảnh)
+   * @author : Tr4nLa4m (12-11-2022)
+   * @param job job
+   */
   @Process(RESIZING_AVATAR)
   public async resizeAvatar(
     job: Job<{ id: string; file: Express.Multer.File }>,
@@ -93,6 +99,52 @@ export class AvatarProcessor {
         .toFile('./uploads/avatars/70x70/' + job.data.file.filename);
     } catch (error) {
       this.logger.error('Failed to resize and save avatar');
+    }
+  }
+
+
+  /**
+   * Process xử lý ảnh nền (resize và lưu ảnh)
+   * @author : Tr4nLa4m (13-11-2022)
+   * @param job job
+   */
+  @Process(RESIZING_COVER)
+  public async resizeCover(
+    job: Job<{ id: string; file: Express.Multer.File }>,
+  ) {
+    this.logger.log('Resizing and saving cover');
+
+    const sharp = require('sharp');
+
+    try {
+      const user = await this.userService.getUserById(job.data.id);
+
+      if (user.avatar != DEFAULT_AVATAR) {
+
+        fs.unlink('./uploads/covers/1080x600/' + user.avatar, (err) => {
+          if (err) {
+            console.error(err);
+            return err;
+          }
+        });
+
+        fs.unlink('./uploads/covers/original/' + user.avatar, (err) => {
+          if (err) {
+            console.error(err);
+            return err;
+          }
+        });
+      }
+
+      await this.userRepo.update(job.data.id, {
+        cover: job.data.file.filename,
+      });
+
+      sharp(job.data.file.path)
+        .resize(1080, 600)
+        .toFile('./uploads/covers/1080x600/' + job.data.file.filename);
+    } catch (error) {
+      this.logger.error('Failed to resize and save cover');
     }
   }
 }

@@ -1,42 +1,43 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
+  IsDate,
+  IsEnum,
   IsOptional,
   IsString,
+  MaxDate,
   Validate,
   ValidateNested,
 } from 'class-validator';
-import { PrimaryColumnCannotBeNullableError } from 'typeorm';
+import { Gender } from 'src/modules/auth/enums/gender.enum';
 
+/**
+ * Dto cập nhật thông tin người dùng
+ * @author : Tr4nLa4m (27-11-2022)
+ */
 export class UpdateProfileDto {
+
+  // Tên người dùng
   @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   name: string;
 
-  @ApiPropertyOptional({ type: String })
+  // Ngày sinh
+  @ApiPropertyOptional({
+    type : Date
+  })
   @IsOptional()
-  @IsString()
-  location: string;
+  @Transform( ({ value }) => value && new Date(value))
+  @IsDate()
+  @MaxDate(new Date())
+  birthday : Date;
 
-  @ApiPropertyOptional({ type: String })
+  // Giới tính
+  @ApiPropertyOptional({ enum: [Gender.FEMALE, Gender.MALE, Gender.OTHER]})
   @IsOptional()
-  @IsString()
-  bio: string;
-
-  @ApiPropertyOptional({ type: String })
-  @IsOptional()
-  @IsString()
-  facebook: string;
-
-  @ApiPropertyOptional({ type: String })
-  @IsOptional()
-  @IsString()
-  instagram: string;
-
-  @ApiPropertyOptional({ type: String })
-  @IsOptional()
-  @IsString()
-  linkedin: string;
+  @IsEnum(Gender)
+  gender : Gender;
 }
 
 export default UpdateProfileDto;
