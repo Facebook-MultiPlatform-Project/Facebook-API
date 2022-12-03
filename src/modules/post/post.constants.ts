@@ -1,2 +1,4 @@
 export const POST_IMAGE_QUEUE = 'POST_IMAGE_QUEUE';
 export const RESIZING_POST_IMAGE = 'RESIZING_POST_IMAGE';
+export const NEW_SIZE_HEIGHT = 720;
+export const NEW_SIZE_WIDTH = 360;

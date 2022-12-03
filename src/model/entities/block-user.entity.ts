@@ -5,7 +5,7 @@ import {
   BaseEntity,
   ManyToOne,
 } from 'typeorm';
-import UserEntity1 from './user.entity';
+import { UserEntity } from './user.entity';
 
 /**
  * Entity người chặn
@@ -19,12 +19,12 @@ export class BlockUserEntity extends BaseEntity {
     id: string;
   
     // Id người chặn
-    @ManyToOne(() => UserEntity1, (userEntity) => userEntity.blockedIds)
-    blocker: UserEntity1;
+    @ManyToOne(() => UserEntity, (userEntity) => userEntity.blockeds)
+    blocker: UserEntity;
   
     // Id người bị chặn
-    @Column({type : 'uuid', nullable : false})
-    blockedId : string;
+    @ManyToOne(() => UserEntity, (userEntity) => userEntity.blockers)
+    blocked : string;
 
 
 }

@@ -61,7 +61,7 @@ export class MailProcessor {
       )}s`,
     });
     const url = `${this.configService.get(
-      'FRONTEND',
+      'BACKEND',
     )}/email/confirm?token=${token}`;
 
     try {
@@ -93,8 +93,8 @@ export class MailProcessor {
       )}s`,
     });
     const url = `${this.configService.get(
-      'FRONTEND',
-    )}/reset-password?token=${token}`;
+      'BACKEND',
+    )}/email/reset-password?token=${token}`;
 
     try {
       return this.mailerService.sendMail({

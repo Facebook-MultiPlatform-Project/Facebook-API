@@ -8,7 +8,7 @@ import {
 import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { CreatePostDto } from '../dtos/create-post.dto';
-import { POST_IMAGE_QUEUE, RESIZING_POST_IMAGE } from '../post.constants';
+import { POST_IMAGE_QUEUE, RESIZING_POST_IMAGE, NEW_SIZE_HEIGHT, NEW_SIZE_WIDTH } from '../post.constants';
 
 @Injectable()
 @Processor(POST_IMAGE_QUEUE)
@@ -35,6 +35,11 @@ export class PostImageProcessor {
     );
   }
 
+  /**
+   * Quy trình chỉnh size ảnh
+   * @author : Tr4nLa4m (10-11-2022)
+   * @param job job cần thực hiện
+   */
   @Process(RESIZING_POST_IMAGE)
   public async resizePostImage(
     job: Job<{
@@ -46,11 +51,10 @@ export class PostImageProcessor {
     this.logger.log('Resizing and saving post image');
 
     const sharp = require('sharp');
-
     try {
       sharp(job.data.file.path)
-        .resize({ width: 584, height: 342 })
-        .toFile('./uploads/post/images/584x342/' + job.data.file.filename);
+        .resize({ width: NEW_SIZE_WIDTH, height: NEW_SIZE_HEIGHT })
+        .toFile(`./uploads/post/images/${NEW_SIZE_WIDTH}x${NEW_SIZE_HEIGHT}/` + job.data.file.filename);
     } catch (error) {
       this.logger.error('Failed to resize and save post images');
     }

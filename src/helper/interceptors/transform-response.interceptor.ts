@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ResponseCode } from 'src/utils/response.code';
+import { ResponseCode } from 'src/utils/codes/response.code';
 
 /**
  * Custom Response

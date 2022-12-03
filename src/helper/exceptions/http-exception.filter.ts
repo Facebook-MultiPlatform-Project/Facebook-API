@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { UserValidateException } from './custom-exception';
 import { HttpAdapterHost } from '@nestjs/core';
-import { ResponseCode } from 'src/utils/response.code';
+import { ResponseCode } from 'src/utils/codes/response.code';
 import { Response } from 'express';
 
 /**

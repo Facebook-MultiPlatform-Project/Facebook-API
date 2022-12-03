@@ -9,13 +9,14 @@ import {
   AVATAR_QUEUE,
   DEFAULT_AVATAR,
   RESIZING_AVATAR,
+  RESIZING_COVER,
 } from './user.constants';
 import { Queue } from 'bull';
 import UpdateProfileDto from './dtos/update-profile.dto';
 import { unlink } from 'fs';
 import * as fs from 'fs';
 import { UserValidateException } from 'src/helper/exceptions/custom-exception';
-import { ResponseCode } from 'src/utils/response.code';
+import { ResponseCode } from 'src/utils/codes/response.code';
 
 @Injectable()
 export class UserService {
@@ -42,9 +43,8 @@ export class UserService {
     }
 
     throw new UserValidateException(
-      ResponseCode.USER_NOT_VALIDATED.Message_VN,
+      ResponseCode.USER_NOT_VALIDATED,
       HttpStatus.NOT_FOUND,
-      ResponseCode.USER_NOT_VALIDATED.Code
     );
   }
 
@@ -54,7 +54,7 @@ export class UserService {
    * @param id Id của người dùng
    * @returns {Promise} trả về 1 promise
    */
-  async getUserById(id: string): Promise<any> {
+  async getUserById(id: string): Promise<UserEntity> {
     const user = await this.userRepo.findOneBy({ id });
 
     if (user) {
@@ -62,20 +62,24 @@ export class UserService {
     }
 
     throw new UserValidateException(
-      ResponseCode.USER_NOT_VALIDATED.Message_VN,
+      ResponseCode.USER_NOT_VALIDATED,
       HttpStatus.NOT_FOUND,
-      ResponseCode.USER_NOT_VALIDATED.Code,
     );
   }
 
+  /**
+   * Thực hiện thêm mới người dùng
+   * @author : Tr4nLa4m (10-11-2022)
+   * @param createUserDto đối tượng dữ liệu dto
+   * @returns 
+   */
   async createUser(createUserDto: CreateUserDto) {
-    const newUser = new UserEntity();
-    newUser.email = createUserDto.email;
-    newUser.password = createUserDto.password;
 
-    await this.userRepo.save(newUser);
+    const newUser = this.userRepo.create(createUserDto)
 
-    return newUser;
+    const res = await this.userRepo.save(newUser);
+
+    return res;
   }
 
   async makeUserVerified(email: string) {
@@ -135,6 +139,12 @@ export class UserService {
     });
   }
 
+  /**
+   * Cập nhật ảnh avatar
+   * @author : Tr4nLa4m (10-11-2022)
+   * @param id id người dùng
+   * @param file file ảnh 
+   */
   async addAvatarToQueue(id: string, file: Express.Multer.File) {
     try {
       this.avatarQueue.add(RESIZING_AVATAR, {
@@ -146,18 +156,28 @@ export class UserService {
     }
   }
 
+  /**
+   * Cập nhật ảnh nền
+   * @author : Tr4nLa4m (10-11-2022)
+   * @param id id người dùng
+   * @param file file ảnh 
+   */
+   async addCoverToQueue(id: string, file: Express.Multer.File) {
+    try {
+      this.avatarQueue.add(RESIZING_COVER, {
+        id,
+        file,
+      });
+    } catch (error) {
+      this.logger.error(`Failed to send cover ${file} to queue`);
+    }
+  }
+
   async deleteAvatar(userId: string) {
     const user = await this.getUserById(userId);
 
     if (user.avatar != DEFAULT_AVATAR) {
       fs.unlink('./uploads/avatars/40x40/' + user.avatar, (err) => {
-        if (err) {
-          console.error(err);
-          return err;
-        }
-      });
-
-      fs.unlink('./uploads/avatars/70x70/' + user.avatar, (err) => {
         if (err) {
           console.error(err);
           return err;
@@ -195,7 +215,7 @@ export class UserService {
    * @param userData Dữ liệu người dùng
    * @returns {Promise} trả về một promise
    */
-  async updateProfile(userId: string, userData: UpdateProfileDto) {
+  async updateProfile(userId: string, userData: UpdateProfileDto): Promise<any> {
     let toUpdate = await this.getUserById(userId);
 
     delete toUpdate.password;

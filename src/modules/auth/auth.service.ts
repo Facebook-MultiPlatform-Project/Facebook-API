@@ -15,7 +15,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import JwtAuthGuard from './guards/jwt-auth.guard';
 import { UserValidateException } from 'src/helper/exceptions/custom-exception';
-import { ResponseCode } from 'src/utils/response.code';
+import { ResponseCode } from 'src/utils/codes/response.code';
 
 @Injectable()
 export class AuthService {
@@ -43,14 +43,18 @@ export class AuthService {
         password: hashedPassword,
       });
 
+      delete newUser.isVerified;
+      delete newUser.password;
+      delete newUser.modifiedAt;
+      delete newUser.refreshToken;
+
       return newUser;
       
     } catch (error) {
       if (error?.code == 'ER_DUP_ENTRY') {
         throw new UserValidateException(
-          ResponseCode.USER_EXISTED.Message_VN,
+          ResponseCode.USER_EXISTED,
           HttpStatus.BAD_REQUEST,
-          ResponseCode.USER_EXISTED.Code
         );
       }
 
@@ -76,7 +80,7 @@ export class AuthService {
     const isPasswordTrue = await bcrypt.compare(rawPassword, hashedPassword);
 
     if (!isPasswordTrue) {
-      throw new UserValidateException( "Sai mật khẩu", HttpStatus.BAD_REQUEST, ResponseCode.USER_NOT_VALIDATED.Code);
+      throw new UserValidateException( ResponseCode.USER_NOT_VALIDATED, HttpStatus.BAD_REQUEST);
     }
   }
 

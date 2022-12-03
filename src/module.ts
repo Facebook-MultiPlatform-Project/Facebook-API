@@ -6,6 +6,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import * as Joi from '@hapi/joi';
 import { MailModule } from './modules/mail/mail.module';
 import { PostModule } from './modules/post/post.module';
+import { FriendModule } from './modules/friend/friend.module';
+
 
 export const Modules = [
   TypeOrmModule.forRoot({
@@ -17,6 +19,9 @@ export const Modules = [
     database: 'fresherk2',
     entities: [__dirname + '/model/entities/**/*{.ts,.js}'],
     synchronize: true,
+    // cache: {
+    //   duration: 1000    // thời gian reset lại dữ liệu default là 1s
+    // },
     timezone: 'Z',
     retryAttempts: 5,
   }),
@@ -49,4 +54,5 @@ export const Modules = [
   UserModule,
   AuthModule,
   PostModule,
+  FriendModule,
 ];

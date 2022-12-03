@@ -107,6 +107,12 @@ export const ResponseCode = {
         Message_EN : "Maximum number of images"
     },
 
+    ONLY_IMAGES_VIDEOS : {
+        Code: 1008,
+        Message_VN : "Chỉ được phép upload ảnh hoặc video",
+        Message_EN : "Maximum number of images"
+    },
+
     NOT_ACCESS : {
         Code: 1009,
         Message_VN : "Không có quyền truy cập tài nguyên",
@@ -130,4 +136,13 @@ export const ResponseCode = {
         Message_VN : "Bài đăng bị giới hạn ở một số quốc gia",
         Message_EN : "Limit access"
     },
+
+
+    CUSTOM : (message : string, code : number) => {
+        return {
+            Code: code,
+            Message_VN : message,
+            Message_EN : message
+        }
+    }
 }

@@ -1,5 +1,11 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { ResponseCode } from 'src/utils/response.code';
+import { ResponseCode } from 'src/utils/codes/response.code';
+
+type ErrorObject = {
+  Message_VN?: string;
+  Message_EN?: string;
+  Code?: number;
+};
 
 /**
  * Lớp custom exception
@@ -11,12 +17,13 @@ export class UserValidateException extends HttpException {
 
   //#region Constructor
   constructor(
-    message: string = ResponseCode.EXCEPTION_ERROR.Message_VN,
-    statusCode: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR,
-    code: number = ResponseCode.EXCEPTION_ERROR.Code,
+    errorObject: ErrorObject = ResponseCode.EXCEPTION_ERROR,
+    statusCode: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR
   ) {
-    super(message, statusCode);
-    this.code = code;
+    super(errorObject.Message_VN, statusCode);
+    this.code = errorObject.Code;
   }
+
   //#endregion
 }
+

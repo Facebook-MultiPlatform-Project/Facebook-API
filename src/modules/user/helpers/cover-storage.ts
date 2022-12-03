@@ -1,13 +1,16 @@
 import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import path = require('path');
-import { BadRequestException } from '@nestjs/common';
 import { UserValidateException } from 'src/helper/exceptions/custom-exception';
 import { ResponseCode } from 'src/utils/codes/response.code';
 
-export const avatarStorageOptions = {
+/**
+ * Config storage lưu ảnh nền
+ * @author : Tr4nLa4m (20-11-2022)
+ */
+export const coverStorageOptions = {
   storage: diskStorage({
-    destination: './uploads/avatars/original/',
+    destination: './uploads/covers/original/',
     filename: (request, file, callback) => {
       
       const filename: string =

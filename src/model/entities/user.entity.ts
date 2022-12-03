@@ -1,5 +1,5 @@
 import { Exclude } from 'class-transformer';
-import { DEFAULT_AVATAR } from 'src/modules/user/user.constants';
+import { DEFAULT_AVATAR, DEFAULT_COVER } from 'src/modules/user/user.constants';
 import {
   Column,
   Entity,
@@ -17,6 +17,12 @@ import PostEntity from './post.entity';
  */
 @Entity()
 export class UserEntity extends BaseEntity {
+
+  constructor(partial: Partial<UserEntity>) {
+    super()
+    Object.assign(this, partial);
+  }
+
   // ID người dùng
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -43,6 +49,12 @@ export class UserEntity extends BaseEntity {
     default: DEFAULT_AVATAR,
   })
   avatar: string;
+
+  // Link nền tài khoản
+  @Column({
+    default: DEFAULT_COVER,
+  })
+  cover: string;
 
   // Ngày sinh
   @Column('date')
@@ -71,9 +83,13 @@ export class UserEntity extends BaseEntity {
   @Column()
   modifiedAt: Date;
 
-  // Danh sách ID người chặn
+  // Danh sách ID người bị chặn bởi user hiện tại
   @OneToMany(() => BlockUserEntity, (block_user) => block_user.blocker  )
-  blockedIds: BlockUserEntity[];
+  blockeds: BlockUserEntity[];
+
+  // Danh sách ID người chặn user hiện tại
+  @OneToMany(() => BlockUserEntity, (block_user) => block_user.blocked  )
+  blockers: BlockUserEntity[];
 
   // Danh sách bài đăng
   @OneToMany(() => PostEntity, (postEntity) => postEntity.author)
