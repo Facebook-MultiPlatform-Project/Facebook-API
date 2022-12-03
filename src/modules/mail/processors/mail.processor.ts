@@ -94,7 +94,7 @@ export class MailProcessor {
     });
     const url = `${this.configService.get(
       'BACKEND',
-    )}/reset-password?token=${token}`;
+    )}/email/reset-password?token=${token}`;
 
     try {
       return this.mailerService.sendMail({

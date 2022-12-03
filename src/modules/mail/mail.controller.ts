@@ -12,6 +12,12 @@ export class MailController {
     private userService: UserService,
   ) {}
 
+  /**
+   * API thực hiện xác nhận tài khoản 
+   * @author : Tr4nLa4m (24-11-2022)
+   * @param token token
+   * @returns 
+   */
   @Get('confirm')
   async confirm(@Query('token') token: string) {
     try {
@@ -24,6 +30,11 @@ export class MailController {
     }
   }
 
+  /**
+   * API reset lại mật khẩu
+   * @author : Tr4nLa4m (25-11-2022)
+   * @param resetPasswordData 
+   */
   @Post('reset-password')
   async resetPassword(@Body() resetPasswordData: ResetPasswordEmailDto) {
     const email = await this.mailService.decodeResetPasswordToken(

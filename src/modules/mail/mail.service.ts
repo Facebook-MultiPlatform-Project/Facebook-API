@@ -22,6 +22,11 @@ export class MailService {
     private userService: UserService,
   ) {}
 
+  /**
+   * Gửi email confirm
+   * @author : Tr4nLa4m (01-11-2022)
+   * @param email email
+   */
   public async sendConfirmationEmail(email: string): Promise<void> {
     try {
       await this.mailQueue.add(CONFIRM_REGISTRATION, {
@@ -66,6 +71,11 @@ export class MailService {
     return res;
   }
 
+  /**
+   * Thực hiện gửi lại mail xác nhận tài khoản
+   * @author : Tr4nLa4m (05-11-2022)
+   * @param id id người dùng
+   */
   public async resendConfirmationEmail(id: string) {
     const user = await this.userService.getUserById(id);
 
