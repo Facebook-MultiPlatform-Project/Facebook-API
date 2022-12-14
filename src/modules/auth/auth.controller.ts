@@ -15,19 +15,28 @@ import {
   Res,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
-import { UserValidateException } from 'src/helper/exceptions/custom-exception';
+import { Request, Response } from 'express';
+import { CustomException, UserValidateException } from 'src/helper/exceptions/custom-exception';
 import CustomResponse from 'src/helper/response/response.type';
+import { CommonMethods } from 'src/utils/common/common.function';
 import { MailService } from '../mail/mail.service';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
 import ForgotPasswordDto from './dtos/forgot-password.dto';
 import RegisterDto from './dtos/register.dto';
+import VerifyDto from './dtos/verify-code.dto';
 import JwtAuthGuard from './guards/jwt-auth.guard';
 import JwtRefreshGuard from './guards/jwt-refresh.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import RequestWithUser from './interfaces/request-with-user.interface';
 
+// Common methods
+const Common = new CommonMethods();
+
+/**
+ * API cho một tài khoản
+ * @author : Tr4nLa4m (20-11-2022)
+ */
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -44,13 +53,17 @@ export class AuthController {
    * @returns
    */
   @Post('signup')
-  async register(@Body() registerDto: RegisterDto) {
+  async register(@Req() request: Request, @Body() registerDto: RegisterDto, @Res() response: Response) {
     try {
       const user = await this.authService.register(registerDto);
       this.mailService.sendConfirmationEmail(registerDto.email);
-      return user;
-    } catch (exception: any) {
-      throw exception;
+      return response
+        .status(HttpStatus.OK)
+        .json(new CustomResponse(user, true, "Đã gửi gmail xác thực tài khoản"));
+    } catch (error) {
+      return response
+        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
+        .json(new CustomException(error.message, request.path, error.code));
     }
   }
 
@@ -78,21 +91,17 @@ export class AuthController {
         refreshTokenCookie,
       ]);
 
-      delete user.modifiedAt;
-      delete user.createdAt;
-      delete user.refreshToken;
+      request.res.header('Access-Control-Allow-Credentials');
+
+      const res = Common.getLessEntityProperties(user, ['id', 'name', 'email', 'avatar', 'cover' ])
 
       return response
         .status(HttpStatus.OK)
-        .json(new CustomResponse(user, true, 'Đăng nhập thành công'));
+        .json(new CustomResponse(res, true, 'Đăng nhập thành công'));
     } catch (error: any) {
       return response
         .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
+        .json(new CustomException(error.message, request.path, error.code));
     }
   }
 
@@ -112,16 +121,12 @@ export class AuthController {
       return response
         .status(HttpStatus.OK)
         .json(
-          new CustomResponse(null, true, 'Gửi email xác nhận lại thành công'),
+          new CustomResponse(1, true, 'Gửi email xác nhận lại thành công'),
         );
     } catch (error) {
       return response
         .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
+        .json(new CustomException(error.message, request.path, error.code));
     }
   }
 
@@ -147,11 +152,7 @@ export class AuthController {
     } catch (error) {
       return response
         .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
+        .json(new CustomException(error.message, request.path, error.code));
     }
   }
 
@@ -164,24 +165,17 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(ClassSerializerInterceptor)
   @Get()
-  authenticate(@Req() request: RequestWithUser,  @Res() response: Response) {
+  async authenticate(@Req() request: RequestWithUser,  @Res() response: Response) {
     try {
       const user = request.user;
-      delete user.createdAt;
-      delete user.modifiedAt;
-      delete user.password;
-      delete user.refreshToken;
+      const res = Common.getLessEntityProperties(user, ['id', 'name', 'email', 'avatar', 'cover']);
       return response
         .status(HttpStatus.OK)
-        .json(new CustomResponse(user, true, 'OK'));
+        .json(new CustomResponse(res, true, 'OK'));
     } catch (error) {
       return response
         .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
+        .json(new CustomException(error.message, request.path, error.code));
     }
   }
 
@@ -193,7 +187,7 @@ export class AuthController {
    */
   @UseGuards(JwtRefreshGuard)
   @Get('refresh')
-  refresh(@Req() request: RequestWithUser, @Res() response: Response) {
+  async refresh(@Req() request: RequestWithUser, @Res() response: Response) {
     
     try {
       const accessTokenCookie = this.authService.getCookieAccessToken(
@@ -201,26 +195,62 @@ export class AuthController {
       );
   
       request.res.setHeader('Set-Cookie', accessTokenCookie);
+      const res = Common.getLessEntityProperties(request.user, ['id', 'name', 'email', 'avatar', 'cover'])
       return response
         .status(HttpStatus.OK)
-        .json(new CustomResponse(request.user, true, 'OK'));
+        .json(new CustomResponse(res, true, 'OK'));
     } catch (error) {
       return response
         .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
+        .json(new CustomException(error.message, request.path, error.code));
     }
   }
 
-  
+  /**
+   * API quên mật khẩu
+   * @author : Tr4nLa4m (15-11-2022)
+   * @param forgotPasswordDto dto
+   * @returns 
+   */
   @Post('forgot-password')
-  async handleForgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    const user = await this.authService.checkEmailForgotPassword(
-      forgotPasswordDto.forgotPasswordEmail,
-    );
-    return this.mailService.sendForgotPasswordEmail(user.email);
+  async handleForgotPassword(@Req() request: RequestWithUser, @Res() response: Response, @Body() forgotPasswordDto: ForgotPasswordDto) {
+    try {
+      const user = await this.authService.checkEmailForgotPassword(
+        forgotPasswordDto.forgotPasswordEmail,
+      );
+      const res = await this.mailService.sendForgotPasswordEmail(user.email);
+      return response
+        .status(HttpStatus.OK)
+        .json(new CustomResponse(1, true, 'Đã gửi email chứa mã xác thực'));
+    } catch (error) {
+      return response
+        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
+        .json(new CustomException(error.message, request.path, error.code));
+    }
+    
+  }
+
+  /**
+   * API kiểm tra mã xác thực
+   * @author : Tr4nLa4m (20-11-2022)
+   * @param request request
+   * @param verify verify dto
+   * @param response response
+   * @returns 
+   */
+  @UseGuards(JwtRefreshGuard)
+  @Post('check-verify-code')
+  async checkVerifyCode(@Req() request: RequestWithUser, @Body() verify : VerifyDto, @Res() response: Response){
+    try {
+      const user = request.user;
+      const res = await this.userService.checkVerifyCode(user.email, verify.verifyCode);
+      return response
+        .status(HttpStatus.OK)
+        .json(res);
+    } catch (error) {
+      return response
+        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
+        .json(new CustomException(error.message, request.path, error.code));
+    }
   }
 }

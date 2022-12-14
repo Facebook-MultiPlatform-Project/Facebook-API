@@ -9,11 +9,23 @@ import { InjectQueue } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
+import { CommonMethods } from 'src/utils/common/common.function';
+import { UserValidateException } from 'src/helper/exceptions/custom-exception';
+import { ResponseCode } from 'src/utils/codes/response.code';
 
+var Common = new CommonMethods();
+
+/**
+ * Service cho email
+ * @author : Tr4nLa4m (20-11-2022)
+ */
 @Injectable()
 export class MailService {
+  //#region Fields
   private logger = new Logger(MailService.name);
+  //#endregion
 
+  //#region Constructor
   constructor(
     @InjectQueue(MAIL_QUEUE)
     private mailQueue: Queue,
@@ -21,7 +33,9 @@ export class MailService {
     private configService: ConfigService,
     private userService: UserService,
   ) {}
+  //#endregion
 
+  //#region Methods
   /**
    * Gửi email confirm
    * @author : Tr4nLa4m (01-11-2022)
@@ -29,8 +43,17 @@ export class MailService {
    */
   public async sendConfirmationEmail(email: string): Promise<void> {
     try {
+
+      // Sinh mã 6 số ngẫu nhiên
+      const verifyCode = Common.generateCode(6);
+
+      const user = await this.userService.getUserByEmail(email);
+      user.verifyCode = verifyCode;
+      user.expiredDate = Common.addMinutesToDate(new Date(), 5);
+      await this.userService.updateUser(user);
       await this.mailQueue.add(CONFIRM_REGISTRATION, {
         email,
+        verifyCode
       });
     } catch (error) {
       this.logger.error(
@@ -57,18 +80,56 @@ export class MailService {
     }
   }
 
-  public async verifyUserEmail(email: string) {
-    const user = await this.userService.getUserByEmail(email);
-
-    if (user.isVerified) {
-      throw new BadRequestException('Email is already confirmed');
+  /**
+   * Xác thực người dùng qua email
+   * @author : Tr4nLa4m (25-11-2022)
+   * @param verifyCode mã xác thực
+   * @param email email
+   * @returns 
+   */
+  public async verifyUserEmail(verifyCode: string, email : string) {
+    const verifyObj = await this.checkIsVerify(verifyCode, email);
+    if( !verifyObj.isValid){
+      throw new BadRequestException(verifyObj.message);
     }
-
-    var res = await this.userService.makeUserVerified(email);
+    let res = await this.userService.makeUserVerified(email);
     if(res === 0){
       throw new BadRequestException('Xác thực email thất bại');
     }
     return res;
+  }
+
+  /**
+   * Kiểm tra xác thực 
+   * @author : Tr4nLa4m (30-11-2022)
+   * @param verifyCode mã xác thực
+   * @param email email
+   * @returns 
+   */
+  async checkIsVerify(verifyCode: string, email : string){
+    let isValid = true;
+    let msg = "";
+    const user = await this.userService.getUserByEmail(email);
+
+    if (user.isVerified) {
+      msg = 'Email is already confirmed';
+      isValid = false;
+    }
+
+    if(user.expiredDate.getTime() < new Date().getTime()){
+      msg = ('Mã xác thực đã hết hạn');
+      isValid = false;
+    }
+
+    if(user.verifyCode !== verifyCode){
+      msg = ('Mã xác thực không chính xác');
+      isValid = false;
+    }
+
+    return {
+      isValid,
+      message : msg
+    }
   }
 
   /**
@@ -86,10 +147,23 @@ export class MailService {
     await this.sendConfirmationEmail(user.email);
   }
 
+  /**
+   * Gửi email mã xác thực dành cho quên mật khẩu
+   * @author : Tr4nLa4m (20-11-2022)
+   * @param email email
+   */
   public async sendForgotPasswordEmail(email: string): Promise<void> {
     try {
+      // Sinh mã 6 số ngẫu nhiên
+      const verifyCode = Common.generateCode(6);
+
+      const user = await this.userService.getUserByEmail(email);
+      user.verifyCode = verifyCode;
+      user.expiredDate = Common.addMinutesToDate(new Date(), 5);
+      await this.userService.updateUser(user);
       await this.mailQueue.add(RESET_PASSWORD, {
         email,
+        verifyCode
       });
     } catch (error) {
       this.logger.error(
@@ -115,4 +189,6 @@ export class MailService {
       }
     }
   }
+
+  //#endregion
 }

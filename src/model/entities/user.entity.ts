@@ -18,11 +18,14 @@ import PostEntity from './post.entity';
 @Entity()
 export class UserEntity extends BaseEntity {
 
+  //#region Constructor
   constructor(partial: Partial<UserEntity>) {
     super()
     Object.assign(this, partial);
   }
+  //#endregion
 
+  //#region Fields
   // ID người dùng
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -68,6 +71,14 @@ export class UserEntity extends BaseEntity {
   @Column({ default: false })
   isVerified: boolean;
 
+  // Code để verify
+  @Column({default : null})
+  verifyCode : string;
+
+  // Thời hạn hết hiệu lực của mã xác thực
+  @Column({default : null})
+  expiredDate: Date;
+
   // Token
   @Column({
     nullable: true,
@@ -94,6 +105,8 @@ export class UserEntity extends BaseEntity {
   // Danh sách bài đăng
   @OneToMany(() => PostEntity, (postEntity) => postEntity.author)
   posts: PostEntity[];
+
+  //#endregion
 }
 
 export default UserEntity;

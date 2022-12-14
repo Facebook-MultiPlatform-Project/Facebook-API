@@ -14,6 +14,11 @@ import { UserEntity } from './user.entity';
 @Entity()
 export class BlockUserEntity extends BaseEntity {
 
+  constructor(partial: Partial<BlockUserEntity>) {
+    super()
+    Object.assign(this, partial);
+  }
+
     // Id của bản ghi
     @PrimaryGeneratedColumn("uuid")
     id: string;
@@ -24,7 +29,7 @@ export class BlockUserEntity extends BaseEntity {
   
     // Id người bị chặn
     @ManyToOne(() => UserEntity, (userEntity) => userEntity.blockers)
-    blocked : string;
+    blocked : UserEntity;
 
 
 }
