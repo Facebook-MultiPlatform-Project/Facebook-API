@@ -4,6 +4,8 @@ import {
     CreateDateColumn,
     Entity,
     ManyToOne,
+    OneToMany,
+    OneToOne,
     PrimaryGeneratedColumn,
   } from 'typeorm';
 import PostEntity from './post.entity';
@@ -38,7 +40,10 @@ import PostEntity from './post.entity';
     // Nội dung
     @Column()
     content: string;
-  
+
+    // Comment được trả lời
+    @ManyToOne(() => CommentEntity)
+    commentAnswered : CommentEntity;
   }
   
   export default CommentEntity;

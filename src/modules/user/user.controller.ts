@@ -24,6 +24,9 @@ import { avatarStorageOptions } from './helpers/avatar-storage';
 import { Response } from 'express';
 import CustomResponse from 'src/helper/response/response.type';
 import { coverStorageOptions } from './helpers/cover-storage';
+import { CustomException } from 'src/helper/exceptions/custom-exception';
+import AnotherUserDto from './dtos/another-user.dto';
+import BlockUserDto from './dtos/block-user.dto';
 
 /**
  * API cho người dùng
@@ -267,6 +270,56 @@ export class UserController {
           message: error.message,
           path: request.url,
         });
+    }
+  }
+
+  /**
+   * API lấy danh sách người bị chặn
+   * @author : Tr4nLa4m (20-11-2022)
+   * @param request request
+   * @param response response
+   * @returns 
+   */
+  @Get('block-list')
+  @UseGuards(JwtAuthGuard)
+  async getBlockList(@Req() request: RequestWithUser, @Res() response: Response) {
+    try {
+      const user = request.user;
+      const res = this.userService.getBlockList(user);
+
+      return response
+        .status(HttpStatus.OK)
+        .json(new CustomResponse(res, true, 'Danh sách người bị chặn'));
+    } catch (error) {
+      return response
+        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
+        .json(new CustomException(error.message, request.path, error.code));
+    }
+  }
+
+  /**
+   * API chặn / bỏ chặn người dùng khác
+   * @param request request
+   * @param blockDto dto block 
+   * @param response response
+   * @returns 
+   */
+  @Post('block')
+  @UseGuards(JwtAuthGuard)
+  async setBlock(@Req() request: RequestWithUser, @Body() blockDto : BlockUserDto , @Res() response: Response){
+    try {
+      const user = request.user;
+      const blockedId = blockDto.userId;
+      const type = blockDto.type;
+      const res = this.userService.setBlock(user, blockedId, type);
+
+      return response
+        .status(HttpStatus.OK)
+        .json(res);
+    } catch (error) {
+      return response
+        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
+        .json(new CustomException(error.message, request.path, error.code));
     }
   }
 }

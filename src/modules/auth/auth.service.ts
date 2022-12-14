@@ -16,6 +16,9 @@ import { ConfigService } from '@nestjs/config';
 import JwtAuthGuard from './guards/jwt-auth.guard';
 import { UserValidateException } from 'src/helper/exceptions/custom-exception';
 import { ResponseCode } from 'src/utils/codes/response.code';
+import { CommonMethods } from 'src/utils/common/common.function';
+
+const Common = new CommonMethods();
 
 @Injectable()
 export class AuthService {
@@ -43,12 +46,9 @@ export class AuthService {
         password: hashedPassword,
       });
 
-      delete newUser.isVerified;
-      delete newUser.password;
-      delete newUser.modifiedAt;
-      delete newUser.refreshToken;
+      const user = Common.getLessEntityProperties(newUser, ['id', 'name', 'email', 'avatar', 'cover'])
 
-      return newUser;
+      return user;
       
     } catch (error) {
       if (error?.code == 'ER_DUP_ENTRY') {
@@ -62,7 +62,13 @@ export class AuthService {
     }
   }
 
-
+  /**
+   * Validate người dùng bằng password
+   * @author : Tr4nLa4m (11-11-2022)
+   * @param email email
+   * @param rawPassword mật khẩu raw
+   * @returns 
+   */
   public async validateUserAndPassword(email: string, rawPassword: string) {
     const user = await this.userService.getUserByEmail(email);
     await this.checkPassword(rawPassword, user.password);

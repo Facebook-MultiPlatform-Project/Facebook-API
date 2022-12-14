@@ -8,7 +8,7 @@ type ErrorObject = {
 };
 
 /**
- * Lớp custom exception
+ * Lớp custom validate exception
  * @author : Tr4nLa4m (17-10-2022)
  */
 export class UserValidateException extends HttpException {
@@ -25,5 +25,27 @@ export class UserValidateException extends HttpException {
   }
 
   //#endregion
+}
+
+/**
+ * Lớp response exception
+ * @author : Tr4nLa4m (03-12-2022)
+ */
+export class CustomException {
+  // Mã code định nghĩa
+  code: number;
+
+  // Message
+  message : string;
+
+  // Đường dẫn
+  path : string;
+
+  constructor(message : string = "Có lỗi xảy ra",path : string = "", code : number = 9999 ){
+    message  = message;
+    path = path;
+    code = code;
+  }
+
 }
 

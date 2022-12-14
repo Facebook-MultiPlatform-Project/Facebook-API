@@ -13,7 +13,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { IsUUID } from 'class-validator';
 import { Response } from 'express';
-import { UserValidateException } from 'src/helper/exceptions/custom-exception';
+import { CustomException, UserValidateException } from 'src/helper/exceptions/custom-exception';
 import { ResponseCode } from 'src/utils/codes/response.code';
 import JwtAuthGuard from '../auth/guards/jwt-auth.guard';
 import RequestWithUser from '../auth/interfaces/request-with-user.interface';
@@ -53,11 +53,9 @@ export class FriendController {
         .status(HttpStatus.CREATED)
         .json(res);
     } catch (error) {
-      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json({
-        code : error.code ? error.code : 9999,
-        message: error.message,
-        path : request.url
-      });
+      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json(
+        new CustomException(error.message, request.path, error.code)
+      );
     }
   }
 
@@ -81,11 +79,9 @@ export class FriendController {
         .status(HttpStatus.OK)
         .json(res);
     } catch (error) {
-      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json({
-        code : error.code ? error.code : 9999,
-        message: error.message,
-        path : request.url
-      });
+      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json(
+        new CustomException(error.message, request.path, error.code)
+      );
     }
   }
 
@@ -112,11 +108,9 @@ export class FriendController {
         .status(HttpStatus.OK)
         .json(res);
     } catch (error) {
-      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json({
-        code : error.code ? error.code : 9999,
-        message: error.message,
-        path : request.url
-      });
+      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json(
+        new CustomException(error.message, request.path, error.code)
+      );
     }
   }
 
@@ -144,11 +138,9 @@ export class FriendController {
         .status(HttpStatus.OK)
         .json(res);
     } catch (error) {
-      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json({
-        code : error.code ? error.code : 9999,
-        message: error.message,
-        path : request.url
-      });
+      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json(
+        new CustomException(error.message, request.path, error.code)
+      );
     }
   }
 
@@ -172,11 +164,9 @@ export class FriendController {
         .status(HttpStatus.OK)
         .json(res);
     } catch (error) {
-      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json({
-        code : error.code ? error.code : 9999,
-        message: error.message,
-        path : request.url
-      });
+      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json(
+        new CustomException(error.message, request.path, error.code)
+      );
     }
   }
 
@@ -203,11 +193,9 @@ export class FriendController {
         .status(HttpStatus.OK)
         .json(res);
     } catch (error) {
-      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json({
-        code : error.code ? error.code : 9999,
-        message: error.message,
-        path : request.url
-      });
+      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json(
+        new CustomException(error.message, request.path, error.code)
+      );
     }
   }
 
@@ -237,11 +225,9 @@ export class FriendController {
         .status(HttpStatus.OK)
         .json(res);
     } catch (error) {
-      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json({
-        code : error.code ? error.code : 9999,
-        message: error.message,
-        path : request.url
-      });
+      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json(
+        new CustomException(error.message, request.path, error.code)
+      );
     }
   }
 }
