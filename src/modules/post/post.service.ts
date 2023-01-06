@@ -13,14 +13,18 @@ import { PostRepository } from 'src/model/repositories/post.repository';
 import { ResponseCode } from 'src/utils/codes/response.code';
 import { UserService } from '../user/user.service';
 import { CreatePostDto } from './dtos/create-post.dto';
-import { mapSendPost, SendPostDto } from './dtos/send-post.dto';
-import { merge } from "object-mapper";
 import {
   POST_IMAGE_QUEUE,
-  RESIZING_POST_IMAGE,
-  NEW_SIZE_HEIGHT,
-  NEW_SIZE_WIDTH,
+  POST_IMAGE_PATH,
+  POST_VIDEO_PATH,
+  COMMON_POST_PROPERTIES,
 } from './post.constants';
+import { FirebaseService } from '../firebase/firebase.service';
+import { CommonMethods } from 'src/utils/common/common.function';
+import { COMMON_USER_PROPERTIES } from '../user/user.constants';
+import { MediaType } from './enum/media-type.enum';
+
+const Common = new CommonMethods();
 
 @Injectable()
 export class PostService {
@@ -36,10 +40,32 @@ export class PostService {
     @InjectQueue(POST_IMAGE_QUEUE)
     private postImageQueue: Queue,
     private userService: UserService,
+    private readonly firebaseService: FirebaseService,
   ) {}
 
-  async getPostById(id: string): Promise<PostEntity> {
-    return await this.postRepo.findOneBy({ id });
+  /**
+   * Lấy bài đăng bởi người dùng.
+   * @param userId id người dùng
+   * @param postId id bài đăng
+   * @returns 
+   */
+  async getPostById(userId : string, postId: string) {
+    let rawPost =  await this.postRepo.findOne({
+      where : {
+        id : postId
+      },
+      relations: {
+        medias : true,
+        author : true
+      }
+    });
+
+    let res = await this.getMorePostInfo(rawPost, userId);
+
+    const result = Common.getLessEntityProperties(res, COMMON_POST_PROPERTIES);
+
+    result['author'] = Common.getLessEntityProperties(result['author'], COMMON_USER_PROPERTIES);
+    return result;
   }
 
   /**
@@ -55,64 +81,79 @@ export class PostService {
     createPostDto: CreatePostDto,
     files: { images?: Express.Multer.File[]; video?: Express.Multer.File[] },
   ) {
-    try {
-      // Tạo bài viết mới
-      const newPost = this.postRepo.create(createPostDto);
+    // Tạo bài viết mới
+    const newPost = this.postRepo.create(createPostDto);
 
-      // Lấy ra tác giả
-      const author = await this.userService.getUserById(userId);
+    // Lấy ra tác giả
+    const author = await this.userService.getUserById(userId);
 
-      newPost.author = author;
+    newPost.author = author;
 
-      if (!files && newPost.content.length === 0) {
-        throw new UserValidateException(
-          ResponseCode.PARAMS_NOT_ENOUGHT,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      if (files.images && files.video) {
-        throw new UserValidateException(
-          ResponseCode.PARAMS_TYPE_INVALID,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // Xử lý nếu có hình ảnh
-      if (files.images) {
-        const images = [];
-        files.images.forEach((file, index) => {
-          let image = this.mediaRepo.create();
-          image.name = file.filename;
-          images.push(image);
-
-          try {
-            this.postImageQueue.add(RESIZING_POST_IMAGE, {
-              userId,
-              createPostDto,
-              file,
-            });
-          } catch (error) {
-            this.logger.error(`Failed to send post image ${file} to queue`);
-          }
-        });
-
-        newPost.medias = images;
-        await this.mediaRepo.save(images);
-      } else if (files.video) {
-        let video = this.mediaRepo.create();
-        video.name = files.video[0].filename;
-        newPost.medias = [video];
-        await this.mediaRepo.save(video);
-      }
-
-      var res =  await this.postRepo.save(newPost);
-
-      var result = merge(res, mapSendPost);
-      return result;
-    } catch (error) {
-      console.log(error);
+    if (!files && newPost.content.length === 0) {
+      throw new UserValidateException(
+        ResponseCode.PARAMS_NOT_ENOUGHT,
+        HttpStatus.BAD_REQUEST,
+      );
     }
+
+    if (files.images && files.video) {
+      throw new UserValidateException(
+        ResponseCode.PARAMS_TYPE_INVALID,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Xử lý nếu có hình ảnh
+    if (files.images) {
+      const images = [];
+
+      for(let index = 0; index < files.images.length; index++){
+        let imageUrl: string = '';
+        let file = files.images[index];
+        try {
+          imageUrl = await this.firebaseService.uploadFile(
+            file,
+            POST_IMAGE_PATH,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Failed to upload post image ${file.originalname} to firebase`,
+          );
+        }
+
+        let image = this.mediaRepo.create();
+        image.name = imageUrl;
+        images.push(image);
+      }
+
+      newPost.medias = images;
+      await this.mediaRepo.save(images);
+    } else if (files.video) {
+      let videoUrl: string = '';
+      try {
+        videoUrl = await this.firebaseService.uploadFile(
+          files.video[0],
+          POST_VIDEO_PATH,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to upload post video ${files.video[0].originalname} to firebase`,
+        );
+      }
+
+      let video = this.mediaRepo.create();
+      video.name = videoUrl;
+      video.type = MediaType.VIDEO;
+      newPost.medias = [video];
+      await this.mediaRepo.save(video);
+    }
+
+    let res = await this.getMorePostInfo(await this.postRepo.save(newPost), userId);
+
+    const result = Common.getLessEntityProperties(res, COMMON_POST_PROPERTIES);
+
+    result['author'] = Common.getLessEntityProperties(result['author'], COMMON_USER_PROPERTIES);
+    return result;
   }
 
   /**
@@ -121,7 +162,7 @@ export class PostService {
    * @param userId Id của người dùng
    * @param take Số bản ghi tối đa lấy
    * @param skip Số bản ghi bỏ qua
-   * @returns 
+   * @returns
    */
   async findWithAuthor(
     userId: string,
@@ -130,7 +171,7 @@ export class PostService {
   ): Promise<PostEntity[]> {
     return await this.postRepo
       .createQueryBuilder('P')
-      .leftJoinAndSelect("P.medias", "media")
+      .leftJoinAndSelect('P.medias', 'media')
       .where('P.authorId = :userId', { userId: userId })
       .orderBy('P.createdAt', 'DESC')
       .take(take)
@@ -139,28 +180,28 @@ export class PostService {
   }
 
   async deletePost(id: string) {
-    const post = await this.getPostById(id);
-    post.medias.forEach((fileName) => {
-      fs.unlink(
-        `./uploads/post/images/${NEW_SIZE_WIDTH}x${NEW_SIZE_HEIGHT}/` +
-          fileName,
-        (err) => {
-          if (err) {
-            console.error(err);
-            return err;
-          }
-        },
-      );
+    // const post = await this.getPostById(id);
+    // post.medias.forEach((fileName) => {
+    //   fs.unlink(
+    //     `./uploads/post/images/${NEW_SIZE_WIDTH}x${NEW_SIZE_HEIGHT}/` +
+    //       fileName,
+    //     (err) => {
+    //       if (err) {
+    //         console.error(err);
+    //         return err;
+    //       }
+    //     },
+    //   );
 
-      fs.unlink('./uploads/post/images/original/' + fileName, (err) => {
-        if (err) {
-          console.error(err);
-          return err;
-        }
-      });
-    });
+    //   fs.unlink('./uploads/post/images/original/' + fileName, (err) => {
+    //     if (err) {
+    //       console.error(err);
+    //       return err;
+    //     }
+    //   });
+    // });
 
-    return this.postRepo.delete(id);
+    // return this.postRepo.delete(id);
   }
 
   /**
@@ -173,7 +214,7 @@ export class PostService {
   async likePost(userId: string, postId: string): Promise<number> {
     const newLike = this.emotionRepo.create();
     const user = await this.userService.getUserById(userId);
-    const post = await this.getPostById(postId);
+    const post = await this.getPostById(postId, userId);
 
     // Nếu không tìm thấy người dùng
     if (!user) {
@@ -191,13 +232,13 @@ export class PostService {
     }
     // Nếu đã react bài viết này rồi
     const oldEmotion = this.getEmotionByUserAndPost(userId, postId);
-    if(oldEmotion){
+    if (oldEmotion) {
       return 0;
     }
 
     // Nếu chưa thì thêm mới một react
     newLike.user = user;
-    newLike.post = post;
+    // newLike.post = post;
 
     const res = await this.emotionRepo.save(newLike);
     if (res) return 1;
@@ -205,19 +246,69 @@ export class PostService {
   }
 
   /**
-   * Lấy cảm xúc dựa trên Id người dùng vài bài đăng
+   * Lấy cảm xúc dựa trên Id người dùng và bài đăng
    * @author : Tr4nLa4m (20-11-2022)
    * @param userId Id người dùng
    * @param postId Id bài đăng
-   * @returns 
+   * @returns
    */
-  async getEmotionByUserAndPost(userId : string, postId : string){
+  async getEmotionByUserAndPost(userId: string, postId: string) {
     return await this.emotionRepo
       .createQueryBuilder('E')
       .where('E.userId = :userId', { userId: userId })
-      .andWhere('E.postId = :postId', {postId : postId})
+      .andWhere('E.postId = :postId', { postId: postId })
       .orderBy('E.createdAt', 'DESC')
       .getOne();
   }
 
+
+  /**
+   * Lấy thêm câc thông tin bài đăng
+   * @author : Tr4nLa4m (29-12-2022)
+   * @param post bài viết
+   */
+  async getMorePostInfo(post : PostEntity, userId : string){
+    const newPost = {...post};
+
+    const isLiked = await this.checkLiked(post.id, userId );
+
+    // trạng thái tác giả đã like bài viết hay chưa
+    newPost['is_liked'] = isLiked;
+
+    const isBlocked = await this.userService.checkIsBlock(userId, post.author.id);
+
+    // trạng thái user đang xem hiện tại có bị chặn hay không ?
+    newPost['is_blocked'] = isBlocked
+
+    // trạng thái bài viết có thể edit hay không
+    newPost['can_edit'] = post.author.id === userId || !post.isBanned;
+
+    // trạng thái bài viết có đang bị chặn hay không
+    newPost['banned'] = post.isBanned;
+
+    // trạng thái user hiện tại có thể comment hay không
+    newPost['can_comment'] = !post.isBlockComment;
+
+    return newPost;
+  }
+
+  async checkLiked(postId : string, userId : string){
+    const postWithEmotion = await this.postRepo.findOne({
+      where: {
+        id : postId
+      },
+      relations: {
+        likes : true,
+      }
+      
+    });
+
+    try {
+      return postWithEmotion.likes?.some((emotion, index) => {
+        return emotion.user.id === postWithEmotion.author.id;
+      })
+    } catch (error) {
+      throw error
+    }
+  }
 }

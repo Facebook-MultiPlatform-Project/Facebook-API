@@ -1,4 +1,14 @@
-import { Controller, Get, HttpStatus, Param, Req, Res, UseGuards, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpStatus,
+  Param,
+  Req,
+  Res,
+  UseGuards,
+  Post,
+  Body,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CustomException } from 'src/helper/exceptions/custom-exception';
@@ -6,7 +16,6 @@ import { EmailConfirmGuard } from '../auth/guards/email-confirm.guard';
 import JwtAuthGuard from '../auth/guards/jwt-auth.guard';
 import RequestWithUser from '../auth/interfaces/request-with-user.interface';
 import { FriendService } from '../friend/friend.service';
-import { UserService } from '../user/user.service';
 import { CommentService } from './comment.service';
 import CreateCommentDto from './dtos/create-comment.dto';
 
@@ -24,32 +33,22 @@ export class CommentController {
   ) {}
   //#endregion
 
-
   /**
    * API lấy các comment của bài đăng mà người dùng có thể xem (không tính bị chặn)
    * @param request request
    * @param postId Id bài đăng
    * @param response response
-   * @returns 
+   * @returns
    */
   @Get('all/:postId')
   @UseGuards(JwtAuthGuard, EmailConfirmGuard)
   async getAll(
     @Req() request: RequestWithUser,
     @Param('postId') postId: string,
-    @Res() response : Response
   ) {
-    try {
-      let user = request.user;
-      const res =  await this.commentService.getAll(user, postId);
-      return response
-        .status(HttpStatus.OK)
-        .json(res);
-    } catch (error) {
-      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json(
-        new CustomException(error.message, request.path, error.code)
-      );
-    }
+    let user = request.user;
+    const res = await this.commentService.getAll(user, postId);
+    return res;
   }
 
   /**
@@ -58,25 +57,19 @@ export class CommentController {
    * @param request request
    * @param createCommentDto dto
    * @param response response
-   * @returns 
+   * @returns
    */
   @Post()
   @UseGuards(JwtAuthGuard, EmailConfirmGuard)
   async create(
     @Req() request: RequestWithUser,
     @Body() createCommentDto: CreateCommentDto,
-    @Res() response : Response
   ) {
-    try {
       let user = request.user;
-      const res =  await this.commentService.createComment(user, createCommentDto);
-      return response
-        .status(HttpStatus.OK)
-        .json(res);
-    } catch (error) {
-      return response.status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR).json(
-        new CustomException(error.message, request.path, error.code)
+      const res = await this.commentService.createComment(
+        user,
+        createCommentDto,
       );
-    }
+      return res;
   }
 }

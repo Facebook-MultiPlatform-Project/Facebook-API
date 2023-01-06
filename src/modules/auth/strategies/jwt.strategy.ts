@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UserService } from 'src/modules/user/user.service';
 import { Request } from 'express';
 import TokenPayload from '../interfaces/token-payload.interface';
+import { ResponseCode } from 'src/utils/codes/response.code';
+import { UserValidateException } from 'src/helper/exceptions/custom-exception';
 
 /**
  * Cơ chế xác thực Jwt
@@ -27,12 +29,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   /**
-   * Xác thực người dùng qua acess token
+   * Xác thực người dùng qua access token
    * @author : Tr4nLa4m (16-10-2022)
    * @param payload payload
    * @returns {Promise}
    */
   async validate(payload: TokenPayload): Promise<any> {
-    return this.userService.getUserById(payload.id);
+    try {
+      return this.userService.getUserById(payload.id);
+    } catch (error) {
+      if(error.message === ResponseCode.USER_NOT_VALIDATED.Message_VN){
+        throw new UserValidateException(ResponseCode.TOKEN_INVALID, HttpStatus.UNAUTHORIZED);
+      }else{
+        throw error;
+      }
+
+    }
   }
 }

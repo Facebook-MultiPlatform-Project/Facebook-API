@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { Modules } from 'src/module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TransformInterceptor } from './helper/interceptors/transform-response.interceptor';
+import { FirebaseModule } from './modules/firebase/firebase.module';
 
 @Module({
   imports: Modules,
@@ -12,6 +13,6 @@ import { TransformInterceptor } from './helper/interceptors/transform-response.i
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
-    },],
+    }],
 })
 export class AppModule {}

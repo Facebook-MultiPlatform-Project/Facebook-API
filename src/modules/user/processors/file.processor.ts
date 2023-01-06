@@ -16,13 +16,14 @@ import {
   DEFAULT_AVATAR,
   RESIZING_AVATAR,
   RESIZING_COVER,
+  UPLOAD_IMAGE,
 } from '../user.constants';
 import { UserService } from '../user.service';
 
 @Injectable()
 @Processor(AVATAR_QUEUE)
-export class AvatarProcessor {
-  private logger = new Logger(AvatarProcessor.name);
+export class FileProcessor {
+  private logger = new Logger(FileProcessor.name);
 
   constructor(
     @InjectRepository(UserEntity)
@@ -33,11 +34,15 @@ export class AvatarProcessor {
   @OnQueueActive()
   public onActive(job: Job) {
     this.logger.debug(`Processing job ${job.id} of type ${job.name}`);
+    
   }
 
   @OnQueueCompleted()
-  public onComplete(job: Job) {
+  public onComplete(job: Job, result: any) {
     this.logger.debug(`Completed job ${job.id} of type ${job.name}`);
+    // if(job.data.callback){
+    //   job.data.callback(job.data.id, job.data.result);
+    // }
   }
 
   @OnQueueFailed()
@@ -97,6 +102,62 @@ export class AvatarProcessor {
       sharp(job.data.file.path)
         .resize(70, 70)
         .toFile('./uploads/avatars/70x70/' + job.data.file.filename);
+
+      return '1';
+    } catch (error) {
+      this.logger.error('Failed to resize and save avatar');
+    }
+  }
+
+  /**
+   * Quy trình xử lý ảnh đại diện (resize và lưu ảnh)
+   * @author : Tr4nLa4m (12-11-2022)
+   * @param job job
+   */
+  @Process(UPLOAD_IMAGE)
+  public async uploadImageToStore(
+    job: Job<{ id: string; file: Express.Multer.File }>,
+  ) {
+    this.logger.log('Resizing and saving avatar');
+
+    const sharp = require('sharp');
+
+    try {
+      const user = await this.userService.getUserById(job.data.id);
+
+      if (user.avatar != DEFAULT_AVATAR) {
+        fs.unlink('./uploads/avatars/40x40/' + user.avatar, (err) => {
+          if (err) {
+            console.error(err);
+            return err;
+          }
+        });
+
+        fs.unlink('./uploads/avatars/70x70/' + user.avatar, (err) => {
+          if (err) {
+            console.error(err);
+            return err;
+          }
+        });
+
+        fs.unlink('./uploads/avatars/original/' + user.avatar, (err) => {
+          if (err) {
+            console.error(err);
+            return err;
+          }
+        });
+      }
+
+      await this.userRepo.update(job.data.id, {
+        avatar: job.data.file.filename,
+      });
+
+      sharp(job.data.file.path)
+        .resize(40, 40)
+        .toFile('./uploads/avatars/40x40/' + job.data.file.filename);
+      sharp(job.data.file.path)
+        .resize(70, 70)
+        .toFile('./uploads/avatars/70x70/' + job.data.file.filename);
     } catch (error) {
       this.logger.error('Failed to resize and save avatar');
     }
@@ -110,7 +171,7 @@ export class AvatarProcessor {
    */
   @Process(RESIZING_COVER)
   public async resizeCover(
-    job: Job<{ id: string; file: Express.Multer.File }>,
+    job: Job<{ id: string; file: Express.Multer.File ; callback: any}>,
   ) {
     this.logger.log('Resizing and saving cover');
 
@@ -140,9 +201,11 @@ export class AvatarProcessor {
         cover: job.data.file.filename,
       });
 
-      sharp(job.data.file.path)
-        .resize(1080, 600)
-        .toFile('./uploads/covers/1080x600/' + job.data.file.filename);
+      // sharp(job.data.file.path)
+      //   .resize(1080, 600)
+      //   .toFile('./uploads/covers/1080x600/' + job.data.file.filename);
+
+      return 1;
     } catch (error) {
       this.logger.error('Failed to resize and save cover');
     }

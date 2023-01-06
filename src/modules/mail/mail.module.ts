@@ -6,7 +6,6 @@ import { BullModule } from '@nestjs/bull';
 import { MAIL_QUEUE } from './mail.constants';
 import { MailProcessor } from './processors/mail.processor';
 import { MailService } from './mail.service';
-import { MailController } from './mail.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from '../user/user.module';
 
@@ -43,6 +42,5 @@ import { UserModule } from '../user/user.module';
   ],
   providers: [MailProcessor, MailService],
   exports: [MailService],
-  controllers: [MailController],
 })
 export class MailModule {}

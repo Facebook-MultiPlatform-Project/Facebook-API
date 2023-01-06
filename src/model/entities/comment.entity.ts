@@ -41,9 +41,6 @@ import PostEntity from './post.entity';
     @Column()
     content: string;
 
-    // Comment được trả lời
-    @ManyToOne(() => CommentEntity)
-    commentAnswered : CommentEntity;
   }
   
   export default CommentEntity;

@@ -31,21 +31,29 @@ export class UserValidateException extends HttpException {
  * Lớp response exception
  * @author : Tr4nLa4m (03-12-2022)
  */
-export class CustomException {
-  // Mã code định nghĩa
-  code: number;
+// export default class CustomException {
+//   // Mã code định nghĩa
+//   code: number;
 
-  // Message
-  message : string;
+//   // Message
+//   message : string;
 
-  // Đường dẫn
-  path : string;
+//   // Đường dẫn
+//   path : string;
 
-  constructor(message : string = "Có lỗi xảy ra",path : string = "", code : number = 9999 ){
-    message  = message;
-    path = path;
-    code = code;
+//   constructor(message : string = "Có lỗi xảy ra",path : string = "", code : number = 9999 ){
+//     message  = message;
+//     path = path;
+//     code = code;
+//   }
+
+// }
+
+export const CustomException = (message : string = "Có lỗi xảy ra",path : string = "", code : number = 9999 ) => {
+  return {
+    message,
+    path,
+    code,
   }
-
 }
 

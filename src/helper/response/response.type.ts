@@ -1,5 +1,9 @@
 import { ResponseCode } from 'src/utils/codes/response.code';
 
+/**
+ * Lớp custom response
+ * @author : Tr4nLa4m (20-11-2022)
+ */
 export default class CustomResponse {
   code: number;
 

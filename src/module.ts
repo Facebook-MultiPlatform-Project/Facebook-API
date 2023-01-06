@@ -8,6 +8,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { PostModule } from './modules/post/post.module';
 import { FriendModule } from './modules/friend/friend.module';
 import { CommentModule } from './modules/comment/comment.module';
+import { FirebaseModule } from './modules/firebase/firebase.module';
 
 
 
@@ -58,4 +59,5 @@ export const Modules = [
   PostModule,
   FriendModule,
   CommentModule,
+  FirebaseModule,
 ];

@@ -47,6 +47,13 @@ export class UserEntity extends BaseEntity {
   })
   email: string;
 
+  // Email tài khoản
+  @Column({
+    type : 'uuid',
+    default : null
+  })
+  uuid: string;
+
   // Link avata tài khoản
   @Column({
     default: DEFAULT_AVATAR,
@@ -60,11 +67,11 @@ export class UserEntity extends BaseEntity {
   cover: string;
 
   // Ngày sinh
-  @Column('date')
+  @Column('date', {default : null})
   birthday: Date;
 
   // Giới tính - 1 là nam, 0 là nữ, 2 là other
-  @Column({ type: 'smallint' })
+  @Column({ type: 'smallint', default : null })
   gender: number;
 
   // Đã xác thực
@@ -84,14 +91,14 @@ export class UserEntity extends BaseEntity {
     nullable: true,
   })
   @Exclude()
-  refreshToken: string;
+  token: string;
 
   // Ngày tạo
   @CreateDateColumn({})
   createdAt: Date;
 
   // Ngày sửa tài khoản
-  @Column()
+  @Column({default : null})
   modifiedAt: Date;
 
   // Danh sách ID người bị chặn bởi user hiện tại
