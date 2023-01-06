@@ -45,6 +45,26 @@ export class PostEntity extends BaseEntity {
   @Column()
   content: string;
 
+  // Trạng thái cảm xúc kèm bài đăng
+  @Column({default : null})
+  status: string;
+
+  // Trạng thái bài viết đang bị khoá comment
+  @Column({default : false})
+  isBlockComment : boolean;
+
+  // Trạng thái bài viết đang bị khoá 
+  @Column({default : false})
+  isBanned : boolean;
+
+  // Số comment
+  @Column({default : 0})
+  numComments: number;
+
+  // Số lượt thích
+  @Column({default : 0})
+  numLikes: number;
+
   @OneToMany(() => MediaEntity, (media) => media.post)
   medias: MediaEntity[];
 

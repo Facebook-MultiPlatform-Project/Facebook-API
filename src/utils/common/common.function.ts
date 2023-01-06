@@ -44,7 +44,7 @@ export class CommonMethods {
   public getLessEntityProperties = (entity: any, pros: Array<string>) => {
     const res = {};
     pros.forEach((property) => {
-      if (entity[property]) {
+      if (entity.hasOwnProperty(property)) {
         res[property] = entity[property];
       } else {
         console.warn(
@@ -56,4 +56,5 @@ export class CommonMethods {
 
     return res;
   };
+
 }

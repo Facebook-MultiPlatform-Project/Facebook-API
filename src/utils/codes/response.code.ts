@@ -91,8 +91,8 @@ export const ResponseCode = {
 
     FILE_TOO_BIG : {
         Code: 1006,
-        Message_VN : "Lỗi exception",
-        Message_EN : "Exception error"
+        Message_VN : "Dung lượng file vượt mức cho phép",
+        Message_EN : "File size too big"
     },
 
     UPLOAD_FILE_FAILED : {
@@ -144,5 +144,11 @@ export const ResponseCode = {
             Message_VN : message,
             Message_EN : message
         }
+    },
+
+    USER_CONFIRMED : {
+        Code: 1013,
+        Message_VN : "Tài khoản đã được xác thực",
+        Message_EN : "User is confirmed"
     }
 }

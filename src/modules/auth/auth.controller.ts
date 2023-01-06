@@ -1,28 +1,23 @@
 import {
   Body,
   Controller,
-  HttpCode,
   Req,
   Post,
   UseGuards,
   Get,
-  Param,
   UseInterceptors,
   ClassSerializerInterceptor,
-  UseFilters,
-  HttpException,
-  HttpStatus,
-  Res,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { Request, Response } from 'express';
-import { CustomException, UserValidateException } from 'src/helper/exceptions/custom-exception';
 import CustomResponse from 'src/helper/response/response.type';
 import { CommonMethods } from 'src/utils/common/common.function';
+import ConfirmEmailDto from '../mail/dtos/confirm-email.dto';
+import ResetPasswordEmailDto from '../mail/dtos/reset-password-email.dto';
 import { MailService } from '../mail/mail.service';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
 import ForgotPasswordDto from './dtos/forgot-password.dto';
+import { UserLoginDto } from './dtos/login.dto';
 import RegisterDto from './dtos/register.dto';
 import VerifyDto from './dtos/verify-code.dto';
 import JwtAuthGuard from './guards/jwt-auth.guard';
@@ -53,18 +48,10 @@ export class AuthController {
    * @returns
    */
   @Post('signup')
-  async register(@Req() request: Request, @Body() registerDto: RegisterDto, @Res() response: Response) {
-    try {
-      const user = await this.authService.register(registerDto);
-      this.mailService.sendConfirmationEmail(registerDto.email);
-      return response
-        .status(HttpStatus.OK)
-        .json(new CustomResponse(user, true, "Đã gửi gmail xác thực tài khoản"));
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json(new CustomException(error.message, request.path, error.code));
-    }
+  async register(@Body() registerDto: RegisterDto) {
+    const user = await this.authService.register(registerDto);
+    await this.mailService.sendConfirmationEmail(registerDto.email);
+    return new CustomResponse(user, true, 'Đã gửi gmail xác thực tài khoản');
   }
 
   /**
@@ -77,32 +64,39 @@ export class AuthController {
   @Post('login')
   async login(
     @Req() request: RequestWithUser,
-    @Res() response: Response,
+    @Body() userDto: UserLoginDto,
   ): Promise<any> {
-    try {
-      const user = request.user;
-      const accessTokenCookie = this.authService.getCookieAccessToken(user.id);
-      const { cookie: refreshTokenCookie, token: refreshToken } =
-        this.authService.getCookieRefreshToken(user.id);
+    const user = request.user;
+    let accessToken = user.token;
+    let accessCookieToken = this.authService.getCookieAccessString(accessToken);
+    if (user.uuid !== userDto.uuid || !user.token) {
+      const accessTokenData = this.authService.getCookieAccessToken(user.id);
+      accessToken = accessTokenData.accessToken;
+      accessCookieToken = accessTokenData.accessCookieToken;
 
-      await this.userService.setRefreshToken(refreshToken, user.id);
-      request.res.setHeader('Set-Cookie', [
-        accessTokenCookie,
-        refreshTokenCookie,
-      ]);
-
-      request.res.header('Access-Control-Allow-Credentials');
-
-      const res = Common.getLessEntityProperties(user, ['id', 'name', 'email', 'avatar', 'cover' ])
-
-      return response
-        .status(HttpStatus.OK)
-        .json(new CustomResponse(res, true, 'Đăng nhập thành công'));
-    } catch (error: any) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json(new CustomException(error.message, request.path, error.code));
+      await this.userService.setRefreshToken(accessToken, user.id);
     }
+
+    request.res.setHeader('Set-Cookie', [accessCookieToken]);
+
+    // Cho phép trên mọi port
+    request.res.header('Access-Control-Allow-Credentials');
+
+    // Trả về thông tin người dùng
+    let resUser = Common.getLessEntityProperties(user, [
+      'id',
+      'name',
+      'email',
+      'avatar',
+      'cover',
+    ]);
+
+    const res = {
+      user : resUser,
+      token : accessToken
+    }
+
+    return new CustomResponse(res, true, 'Đăng nhập thành công');
   }
 
   /**
@@ -112,22 +106,9 @@ export class AuthController {
    */
   @UseGuards(JwtAuthGuard)
   @Post('re-verify')
-  async resendConfirmEmail(
-    @Req() request: RequestWithUser,
-    @Res() response: Response,
-  ) {
-    try {
-      let res = await this.mailService.resendConfirmationEmail(request.user.id);
-      return response
-        .status(HttpStatus.OK)
-        .json(
-          new CustomResponse(1, true, 'Gửi email xác nhận lại thành công'),
-        );
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json(new CustomException(error.message, request.path, error.code));
-    }
+  async resendConfirmEmail(@Req() request: RequestWithUser) {
+    await this.mailService.resendConfirmationEmail(request.user.id);
+    return new CustomResponse(1, true, 'Gửi email xác nhận lại thành công');
   }
 
   /**
@@ -139,21 +120,10 @@ export class AuthController {
    */
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async logOut(@Req() request: RequestWithUser, @Res() response: Response) {
-    try {
-      await this.userService.removeRefreshToken(request.user.id);
-      request.res.setHeader(
-        'Set-Cookie',
-        this.authService.getCookieForLogOut(),
-      );
-      return response
-        .status(HttpStatus.OK)
-        .json(new CustomResponse(null, true, 'Đăng xuất thành công'));
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json(new CustomException(error.message, request.path, error.code));
-    }
+  async logOut(@Req() request: RequestWithUser) {
+    await this.userService.removeToken(request.user.id);
+    request.res.setHeader('Set-Cookie', this.authService.getCookieForLogOut());
+    return new CustomResponse(null, true, 'Đăng xuất thành công');
   }
 
   /**
@@ -165,69 +135,54 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(ClassSerializerInterceptor)
   @Get()
-  async authenticate(@Req() request: RequestWithUser,  @Res() response: Response) {
-    try {
-      const user = request.user;
-      const res = Common.getLessEntityProperties(user, ['id', 'name', 'email', 'avatar', 'cover']);
-      return response
-        .status(HttpStatus.OK)
-        .json(new CustomResponse(res, true, 'OK'));
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json(new CustomException(error.message, request.path, error.code));
-    }
+  async authenticate(@Req() request: RequestWithUser) {
+    const user = request.user;
+    const res = Common.getLessEntityProperties(user, [
+      'id',
+      'name',
+      'email',
+      'avatar',
+      'cover',
+    ]);
+    return res;
   }
 
   /**
    * API refresh access token
    * @author : Tr4nLa4m (5-11-2022)
    * @param request request
-   * @returns 
+   * @returns
    */
-  @UseGuards(JwtRefreshGuard)
-  @Get('refresh')
-  async refresh(@Req() request: RequestWithUser, @Res() response: Response) {
-    
-    try {
-      const accessTokenCookie = this.authService.getCookieAccessToken(
-        request.user.id,
-      );
-  
-      request.res.setHeader('Set-Cookie', accessTokenCookie);
-      const res = Common.getLessEntityProperties(request.user, ['id', 'name', 'email', 'avatar', 'cover'])
-      return response
-        .status(HttpStatus.OK)
-        .json(new CustomResponse(res, true, 'OK'));
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json(new CustomException(error.message, request.path, error.code));
-    }
-  }
+  // @UseGuards(JwtRefreshGuard)
+  // @Get('refresh')
+  // async refresh(@Req() request: RequestWithUser) {
+  //   const accessTokenCookie = this.authService.getCookieAccessToken(
+  //     request.user.id,
+  //   );
+  //   request.res.setHeader('Set-Cookie', accessTokenCookie);
+  //   const res = Common.getLessEntityProperties(request.user, [
+  //     'id',
+  //     'name',
+  //     'email',
+  //     'avatar',
+  //     'cover',
+  //   ]);
+  //   return res;
+  // }
 
   /**
    * API quên mật khẩu
    * @author : Tr4nLa4m (15-11-2022)
    * @param forgotPasswordDto dto
-   * @returns 
+   * @returns
    */
   @Post('forgot-password')
-  async handleForgotPassword(@Req() request: RequestWithUser, @Res() response: Response, @Body() forgotPasswordDto: ForgotPasswordDto) {
-    try {
-      const user = await this.authService.checkEmailForgotPassword(
-        forgotPasswordDto.forgotPasswordEmail,
-      );
-      const res = await this.mailService.sendForgotPasswordEmail(user.email);
-      return response
-        .status(HttpStatus.OK)
-        .json(new CustomResponse(1, true, 'Đã gửi email chứa mã xác thực'));
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json(new CustomException(error.message, request.path, error.code));
-    }
-    
+  async handleForgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    const user = await this.authService.checkEmailForgotPassword(
+      forgotPasswordDto.forgotPasswordEmail,
+    );
+    await this.mailService.sendForgotPasswordEmail(user.email);
+    return new CustomResponse(1, true, 'Đã gửi email chứa mã xác thực');
   }
 
   /**
@@ -236,21 +191,50 @@ export class AuthController {
    * @param request request
    * @param verify verify dto
    * @param response response
-   * @returns 
+   * @returns
    */
   @UseGuards(JwtRefreshGuard)
   @Post('check-verify-code')
-  async checkVerifyCode(@Req() request: RequestWithUser, @Body() verify : VerifyDto, @Res() response: Response){
-    try {
-      const user = request.user;
-      const res = await this.userService.checkVerifyCode(user.email, verify.verifyCode);
-      return response
-        .status(HttpStatus.OK)
-        .json(res);
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json(new CustomException(error.message, request.path, error.code));
-    }
+  async checkVerifyCode(
+    @Req() request: RequestWithUser,
+    @Body() verify: VerifyDto,
+  ) {
+    const res = await this.userService.checkVerifyCode(
+      request.user.email,
+      verify.verifyCode,
+    );
+    return res;
+  }
+
+  /**
+   * API thực hiện xác nhận tài khoản 
+   * @author : Tr4nLa4m (24-11-2022)
+   * @param confirmEmailDto đối tượng truyền dữ liệu mã xác nhận
+   * @returns 
+   */
+  @Post('confirm')
+  async confirm(@Body() confirmEmailDto : ConfirmEmailDto) {
+      const verifyCode = confirmEmailDto.verifyCode;
+      var res = 0;
+      res = await this.authService.verifyUserEmail(verifyCode, confirmEmailDto.email);
+      return new CustomResponse(res, true, 'Xác nhận tài khoản thành công');
+  }
+
+
+  /**
+   * API reset lại mật khẩu
+   * @author : Tr4nLa4m (25-11-2022)
+   * @param resetPasswordData 
+   */
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordData: ResetPasswordEmailDto) {
+      const verifyCode = resetPasswordData.verifyCode;
+      let verifyObj = await this.authService.checkIsVerify(verifyCode, resetPasswordData.email);
+      if(verifyObj.isValid){
+        let res = await this.userService.setNewPassword(resetPasswordData.email, resetPasswordData.password);
+        return res;
+      }else {
+        return new CustomResponse(0, false, 'Reset mật khẩu không thành công');
+      }
   }
 }

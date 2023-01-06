@@ -8,7 +8,6 @@ import {
 import { UserValidateException } from './custom-exception';
 import { HttpAdapterHost } from '@nestjs/core';
 import { ResponseCode } from 'src/utils/codes/response.code';
-import { Response } from 'express';
 
 /**
  * Exception filter bắt mọi thứ exception
@@ -35,16 +34,11 @@ export class HttpExceptionFilter implements ExceptionFilter   {
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
-    const code =
-      exception instanceof UserValidateException
-        ? exception.code
-        : ResponseCode.EXCEPTION_ERROR.Code;
-    const message =
-      exception instanceof HttpException
-        ? exception.message
-        : ResponseCode.EXCEPTION_ERROR.Message_VN;
+    const code = exception instanceof UserValidateException  ? exception.code : ResponseCode.EXCEPTION_ERROR.Code;
+    const message = exception instanceof HttpException ? exception.message : ResponseCode.EXCEPTION_ERROR.Message_VN;
 
-    const devMsg = exception instanceof HttpException ? exception.getResponse()  : {}
+    const devMsg = exception instanceof HttpException ? exception.getResponse()  : 
+    exception instanceof Error ?  exception.message : {}
     
     const responseBody = {
       code,

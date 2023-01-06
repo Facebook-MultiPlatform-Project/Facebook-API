@@ -20,13 +20,11 @@ import JwtAuthGuard from '../auth/guards/jwt-auth.guard';
 import { join } from 'path';
 import RequestWithUser from '../auth/interfaces/request-with-user.interface';
 import UpdateProfileDto from './dtos/update-profile.dto';
-import { avatarStorageOptions } from './helpers/avatar-storage';
+import { imageStorageOption } from './helpers/image-file-storage';
 import { Response } from 'express';
 import CustomResponse from 'src/helper/response/response.type';
-import { coverStorageOptions } from './helpers/cover-storage';
-import { CustomException } from 'src/helper/exceptions/custom-exception';
-import AnotherUserDto from './dtos/another-user.dto';
 import BlockUserDto from './dtos/block-user.dto';
+import { FirebaseService } from '../firebase/firebase.service';
 
 /**
  * API cho người dùng
@@ -35,7 +33,9 @@ import BlockUserDto from './dtos/block-user.dto';
 @ApiTags('user')
 @Controller('user')
 export class UserController {
-  constructor(private userService: UserService) {}
+  constructor(
+    private userService: UserService,
+  ) {}
 
   /**
    * API Thực hiện cập nhật thông tin người dùng
@@ -49,27 +49,13 @@ export class UserController {
   async updateProfile(
     @Req() request: RequestWithUser,
     @Body() userData: UpdateProfileDto,
-    @Res() response: Response,
   ): Promise<any> {
-    try {
       const res = await this.userService.updateProfile(
         request.user.id,
         userData,
       );
-      return response
-        .status(HttpStatus.OK)
-        .json(
-          new CustomResponse(res, true, 'Đã cập nhật thông tin người dùng'),
-        );
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
-    }
+      return new CustomResponse(res, true, 'Đã cập nhật thông tin người dùng');
+
   }
 
   /**
@@ -80,26 +66,13 @@ export class UserController {
    */
   @Post('save-avatar')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('image', avatarStorageOptions))
+  @UseInterceptors(FileInterceptor('image', imageStorageOption))
   async saveAvatar(
     @UploadedFile() file: Express.Multer.File,
     @Req() request: RequestWithUser,
-    @Res() response: Response,
   ): Promise<any> {
-    try {
-      var res = await this.userService.addAvatarToQueue(request.user.id, file);
-      return response
-        .status(HttpStatus.OK)
-        .json(new CustomResponse(1, true, 'Đã cập nhật ảnh đại diện'));
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
-    }
+    const res = await this.userService.saveAvatar(request.user , file);
+    return res;
   }
 
   /**
@@ -110,26 +83,13 @@ export class UserController {
    */
   @Post('save-cover')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('image', coverStorageOptions))
+  @UseInterceptors(FileInterceptor('image', imageStorageOption))
   async saveCover(
     @UploadedFile() file: Express.Multer.File,
     @Req() request: RequestWithUser,
-    @Res() response: Response,
   ): Promise<any> {
-    try {
-      var res = await this.userService.addCoverToQueue(request.user.id, file);
-      return response
-        .status(HttpStatus.OK)
-        .json(new CustomResponse(1, true, 'Đã cập nhật ảnh nền'));
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
-    }
+    const res = await this.userService.saveCover(request.user , file);
+    return res;
   }
 
   /**
@@ -139,27 +99,17 @@ export class UserController {
    * @param res response
    * @returns
    */
-  @Get('get-avatar-40x40')
-  @UseGuards(JwtAuthGuard)
-  async findAvatar40(@Req() request: RequestWithUser, @Res() res: Response) {
-    try {
-      const user = await this.userService.getUserById(request.user.id);
+  // @Get('get-avatar-40x40')
+  // @UseGuards(JwtAuthGuard)
+  // async findAvatar40(@Req() request: RequestWithUser, @Res() res: Response) {
+  //   const user = await this.userService.getUserById(request.user.id);
 
-      return of(
-        res.sendFile(
-          join(process.cwd(), './uploads/avatars/40x40/' + user.avatar),
-        ),
-      );
-    } catch (error) {
-      return res
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
-    }
-  }
+  //   return of(
+  //     res.sendFile(
+  //       join(process.cwd(), './uploads/avatars/40x40/' + user.avatar),
+  //     ),
+  //   );
+  // }
 
   /**
    * API lấy file ảnh size 70x70
@@ -168,27 +118,17 @@ export class UserController {
    * @param res response
    * @returns
    */
-  @Get('get-avatar-70x70')
-  @UseGuards(JwtAuthGuard)
-  async findAvatar70(@Req() request: RequestWithUser, @Res() res: Response) {
-    try {
-      const user = await this.userService.getUserById(request.user.id);
+  // @Get('get-avatar-70x70')
+  // @UseGuards(JwtAuthGuard)
+  // async findAvatar70(@Req() request: RequestWithUser, @Res() res: Response) {
+  //   const user = await this.userService.getUserById(request.user.id);
 
-      return of(
-        res.sendFile(
-          join(process.cwd(), './uploads/avatars/70x70/' + user.avatar),
-        ),
-      );
-    } catch (error) {
-      return res
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
-    }
-  }
+  //   return of(
+  //     res.sendFile(
+  //       join(process.cwd(), './uploads/avatars/70x70/' + user.avatar),
+  //     ),
+  //   );
+  // }
 
   /**
    * API lấy ảnh đại diện gốc
@@ -197,27 +137,17 @@ export class UserController {
    * @param res response
    * @returns
    */
-  @Get('get-avatar-original')
-  @UseGuards(JwtAuthGuard)
-  async findAvatar(@Req() request: RequestWithUser, @Res() res: Response) {
-    try {
-      const user = await this.userService.getUserById(request.user.id);
+  // @Get('get-avatar-original')
+  // @UseGuards(JwtAuthGuard)
+  // async findAvatar(@Req() request: RequestWithUser, @Res() res: Response) {
+  //   const user = await this.userService.getUserById(request.user.id);
 
-      return of(
-        res.sendFile(
-          join(process.cwd(), './uploads/avatars/original/' + user.avatar),
-        ),
-      );
-    } catch (error) {
-      return res
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
-    }
-  }
+  //   return of(
+  //     res.sendFile(
+  //       join(process.cwd(), './uploads/avatars/original/' + user.avatar),
+  //     ),
+  //   );
+  // }
 
   /**
    * API lấy ảnh nền gốc
@@ -226,27 +156,17 @@ export class UserController {
    * @param res response
    * @returns
    */
-  @Get('get-cover-original')
-  @UseGuards(JwtAuthGuard)
-  async findCover(@Req() request: RequestWithUser, @Res() res: Response) {
-    try {
-      const user = await this.userService.getUserById(request.user.id);
+  // @Get('get-cover-original')
+  // @UseGuards(JwtAuthGuard)
+  // async findCover(@Req() request: RequestWithUser, @Res() res: Response) {
+  //   const user = await this.userService.getUserById(request.user.id);
 
-      return of(
-        res.sendFile(
-          join(process.cwd(), './uploads/covers/original/' + user.cover),
-        ),
-      );
-    } catch (error) {
-      return res
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
-    }
-  }
+  //   return of(
+  //     res.sendFile(
+  //       join(process.cwd(), './uploads/covers/original/' + user.cover),
+  //     ),
+  //   );
+  // }
 
   /**
    * API xoá ảnh đại diện
@@ -255,22 +175,10 @@ export class UserController {
    */
   @Delete('delete-avatar')
   @UseGuards(JwtAuthGuard)
-  async deleteAvatar(@Req() request: RequestWithUser, @Res() response: Response) {
-    try {
-      const res = this.userService.deleteAvatar(request.user.id);
+  async deleteAvatar(@Req() request: RequestWithUser) {
+    const res = this.userService.deleteAvatar(request.user.id);
 
-      return response
-        .status(HttpStatus.OK)
-        .json(new CustomResponse(1, true, 'Đã xoá ảnh đại diện'));
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          code: error.code ? error.code : 9999,
-          message: error.message,
-          path: request.url,
-        });
-    }
+    return new CustomResponse(1, true, 'Đã xoá ảnh đại diện');
   }
 
   /**
@@ -278,48 +186,35 @@ export class UserController {
    * @author : Tr4nLa4m (20-11-2022)
    * @param request request
    * @param response response
-   * @returns 
+   * @returns
    */
   @Get('block-list')
   @UseGuards(JwtAuthGuard)
-  async getBlockList(@Req() request: RequestWithUser, @Res() response: Response) {
-    try {
-      const user = request.user;
-      const res = this.userService.getBlockList(user);
+  async getBlockList(@Req() request: RequestWithUser) {
+    const user = request.user;
+    const res = this.userService.getBlockList(user);
 
-      return response
-        .status(HttpStatus.OK)
-        .json(new CustomResponse(res, true, 'Danh sách người bị chặn'));
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json(new CustomException(error.message, request.path, error.code));
-    }
+    return res;
   }
 
   /**
    * API chặn / bỏ chặn người dùng khác
    * @param request request
-   * @param blockDto dto block 
+   * @param blockDto dto block
    * @param response response
-   * @returns 
+   * @returns
    */
   @Post('block')
   @UseGuards(JwtAuthGuard)
-  async setBlock(@Req() request: RequestWithUser, @Body() blockDto : BlockUserDto , @Res() response: Response){
-    try {
-      const user = request.user;
-      const blockedId = blockDto.userId;
-      const type = blockDto.type;
-      const res = this.userService.setBlock(user, blockedId, type);
+  async setBlock(
+    @Req() request: RequestWithUser,
+    @Body() blockDto: BlockUserDto,
+  ) {
+    const user = request.user;
+    const blockedId = blockDto.userId;
+    const type = blockDto.type;
+    const res = this.userService.setBlock(user, blockedId, type);
 
-      return response
-        .status(HttpStatus.OK)
-        .json(res);
-    } catch (error) {
-      return response
-        .status(error.status ? error.status : HttpStatus.INTERNAL_SERVER_ERROR)
-        .json(new CustomException(error.message, request.path, error.code));
-    }
+    return res;
   }
 }

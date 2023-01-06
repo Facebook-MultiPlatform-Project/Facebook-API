@@ -22,8 +22,10 @@ import { EmailConfirmGuard } from '../auth/guards/email-confirm.guard';
 import JwtAuthGuard from '../auth/guards/jwt-auth.guard';
 import RequestWithUser from '../auth/interfaces/request-with-user.interface';
 import { CreatePostDto } from './dtos/create-post.dto';
-import { postStorageOptions } from './helpers/post-media-storage';
+import { postStorageOptions } from './helpers/post-file-storage';
 import { PostService } from './post.service';
+import { FirebaseService } from '../firebase/firebase.service';
+import { GetPostByIdDto } from './dtos/get_by_id-post.dto';
 
 @ApiTags('posts')
 @Controller('posts')
@@ -51,12 +53,26 @@ export class PostController {
     @Body() createPostData: CreatePostDto,
     @UploadedFiles() files: { images?: Express.Multer.File[], video?: Express.Multer.File[] },
   ) {
-    try {
+    
       var res = await this.postService.create(request.user.id, createPostData, files);
       return res;
-    } catch (exception) {
-      throw exception;
-    }
+  }
+
+  /**
+   * API lấy các bài post qua id
+   * @author : Tr4nLa4m (12-11-2022)
+   * @param author Id của tác giả
+   * @param take Sô bài viết tối đa lấy
+   * @param skip Bỏ qua số bài viết trước
+   * @returns 
+   */
+  @Post('get-by-id')
+  @UseGuards(JwtAuthGuard, EmailConfirmGuard)
+  async getPostById(
+    @Req() request: RequestWithUser,
+    @Body() postIdDto : GetPostByIdDto
+  ) {
+    return await this.postService.getPostById(request.user.id, postIdDto.postId);
   }
 
   /**
@@ -106,11 +122,7 @@ export class PostController {
   async likePost(
     @Req() request: RequestWithUser,
     @Param('postId') postId : string){
-    try {
       const res = await this.postService.likePost(request.user.id, postId);
       return res;
-    } catch (exception) {
-      throw exception;
-    }
   }
 }

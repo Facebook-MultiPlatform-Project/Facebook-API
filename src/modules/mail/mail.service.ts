@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpCode,
+  HttpStatus,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import {
   CONFIRM_REGISTRATION,
   MAIL_QUEUE,
@@ -12,6 +18,7 @@ import { UserService } from '../user/user.service';
 import { CommonMethods } from 'src/utils/common/common.function';
 import { UserValidateException } from 'src/helper/exceptions/custom-exception';
 import { ResponseCode } from 'src/utils/codes/response.code';
+import { RESEND_VERIFY_CODE_PERIOD } from '../user/user.constants';
 
 var Common = new CommonMethods();
 
@@ -43,7 +50,6 @@ export class MailService {
    */
   public async sendConfirmationEmail(email: string): Promise<void> {
     try {
-
       // Sinh mã 6 số ngẫu nhiên
       const verifyCode = Common.generateCode(6);
 
@@ -53,11 +59,11 @@ export class MailService {
       await this.userService.updateUser(user);
       await this.mailQueue.add(CONFIRM_REGISTRATION, {
         email,
-        verifyCode
+        verifyCode,
       });
     } catch (error) {
       this.logger.error(
-        `Failed to send registration email to user ${email} to queue`,
+        `[sendConfirmationEmail] - Failed to send registration email to user ${email} to queue`,
       );
     }
   }
@@ -81,58 +87,6 @@ export class MailService {
   }
 
   /**
-   * Xác thực người dùng qua email
-   * @author : Tr4nLa4m (25-11-2022)
-   * @param verifyCode mã xác thực
-   * @param email email
-   * @returns 
-   */
-  public async verifyUserEmail(verifyCode: string, email : string) {
-    const verifyObj = await this.checkIsVerify(verifyCode, email);
-    if( !verifyObj.isValid){
-      throw new BadRequestException(verifyObj.message);
-    }
-    let res = await this.userService.makeUserVerified(email);
-    if(res === 0){
-      throw new BadRequestException('Xác thực email thất bại');
-    }
-    return res;
-  }
-
-  /**
-   * Kiểm tra xác thực 
-   * @author : Tr4nLa4m (30-11-2022)
-   * @param verifyCode mã xác thực
-   * @param email email
-   * @returns 
-   */
-  async checkIsVerify(verifyCode: string, email : string){
-    let isValid = true;
-    let msg = "";
-    const user = await this.userService.getUserByEmail(email);
-
-    if (user.isVerified) {
-      msg = 'Email is already confirmed';
-      isValid = false;
-    }
-
-    if(user.expiredDate.getTime() < new Date().getTime()){
-      msg = ('Mã xác thực đã hết hạn');
-      isValid = false;
-    }
-
-    if(user.verifyCode !== verifyCode){
-      msg = ('Mã xác thực không chính xác');
-      isValid = false;
-    }
-
-    return {
-      isValid,
-      message : msg
-    }
-  }
-
-  /**
    * Thực hiện gửi lại mail xác nhận tài khoản
    * @author : Tr4nLa4m (05-11-2022)
    * @param id id người dùng
@@ -140,8 +94,22 @@ export class MailService {
   public async resendConfirmationEmail(id: string) {
     const user = await this.userService.getUserById(id);
 
+    // Kiểm tra tài khoản đã được xác thực hay chưa
     if (user.isVerified) {
       throw new BadRequestException('User is already verified');
+    }
+
+    // Kiểm tra thời gian tối thiểu để gửi lại mã xác thực
+    if (user.expiredDate) {
+      let now = new Date();
+      let resendPeriod =
+      now.getTime() - (user.expiredDate.getTime() - 5 * 60 * 1000 ) ;
+      if (resendPeriod > 0 && resendPeriod < RESEND_VERIFY_CODE_PERIOD * 1000) {
+        throw new UserValidateException(
+          ResponseCode.ACTION_HAS_DONE,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
     }
 
     await this.sendConfirmationEmail(user.email);
@@ -163,7 +131,7 @@ export class MailService {
       await this.userService.updateUser(user);
       await this.mailQueue.add(RESET_PASSWORD, {
         email,
-        verifyCode
+        verifyCode,
       });
     } catch (error) {
       this.logger.error(

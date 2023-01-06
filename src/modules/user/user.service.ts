@@ -7,13 +7,16 @@ import * as bcrypt from 'bcrypt';
 import { InjectQueue } from '@nestjs/bull';
 import {
   AVATAR_QUEUE,
+  AVATAR_PATH,
+  COVER_PATH,
   DEFAULT_AVATAR,
   RESIZING_AVATAR,
   RESIZING_COVER,
+  COMMON_USER_PROPERTIES,
 } from './user.constants';
 import { Queue } from 'bull';
 import UpdateProfileDto from './dtos/update-profile.dto';
-import { unlink } from 'fs';
+import path = require('path');
 import * as fs from 'fs';
 import { UserValidateException } from 'src/helper/exceptions/custom-exception';
 import { ResponseCode } from 'src/utils/codes/response.code';
@@ -21,6 +24,10 @@ import CustomResponse from 'src/helper/response/response.type';
 import BlockUserEntity from 'src/model/entities/block-user.entity';
 import { BlockUserRepository } from 'src/model/repositories/block-user.repository';
 import { BlockType } from './enum/block-type.enum';
+import { FirebaseService } from '../firebase/firebase.service';
+import { CommonMethods } from 'src/utils/common/common.function';
+
+const Common = new CommonMethods();
 
 /**
  * Service dành cho người dùng
@@ -40,6 +47,7 @@ export class UserService {
     private blockRepo: BlockUserRepository,
     @InjectQueue(AVATAR_QUEUE)
     private avatarQueue: Queue,
+    private readonly firebaseService: FirebaseService,
   ) {}
   //#endregion
 
@@ -53,14 +61,7 @@ export class UserService {
   async getUserByEmail(email: string) {
     const user = await this.userRepo.findOneBy({ email });
 
-    if (user) {
-      return user;
-    }
-
-    throw new UserValidateException(
-      ResponseCode.USER_NOT_VALIDATED,
-      HttpStatus.NOT_FOUND,
-    );
+    return user;
   }
 
   /**
@@ -80,6 +81,52 @@ export class UserService {
       ResponseCode.USER_NOT_VALIDATED,
       HttpStatus.NOT_FOUND,
     );
+  }
+
+  /**
+   * Cập nhật ảnh đại diện người dùng
+   * @author : Tr4nLa4m (25-12-2022)
+   * @param user user
+   * @param file file ảnh đại diện
+   * @returns
+   */
+  async saveAvatar(user: UserEntity, file: Express.Multer.File) {
+    // upload ảnh lên storage
+    const avatar = await this.uploadImage(file, AVATAR_PATH);
+    // cập nhật db
+    await this.userRepo.update({ id: user.id }, { avatar });
+    const newUser = await this.getUserById(user.id);
+    const res = Common.getLessEntityProperties(newUser, COMMON_USER_PROPERTIES);
+    return res;
+  }
+
+  /**
+   * Cập nhật ảnh nền người dùng
+   * @author : Tr4nLa4m (25-12-2022)
+   * @param user user
+   * @param file file ảnh đại diện
+   * @returns
+   */
+  async saveCover(user: UserEntity, file: Express.Multer.File) {
+    // upload ảnh lên storage
+    const avatar = await this.uploadImage(file, COVER_PATH);
+    // cập nhật db
+    await this.userRepo.update({ id: user.id }, { avatar });
+    const newUser = await this.getUserById(user.id);
+    const res = Common.getLessEntityProperties(newUser, COMMON_USER_PROPERTIES);
+    return res;
+  }
+
+  /**
+   * Upload ảnh lên firebase
+   * @author : Tr4nLa4m (25-12-2022)
+   * @param file file
+   * @param path path
+   * @returns
+   */
+  async uploadImage(file: Express.Multer.File, path: string) {
+    let url: string = await this.firebaseService.uploadFile(file, path);
+    return url;
   }
 
   /**
@@ -104,11 +151,15 @@ export class UserService {
    */
   async updateUser(user: UserEntity) {
     delete user.email;
-    delete user.refreshToken;
+    delete user.token;
     delete user.password;
 
     const res = await this.userRepo.save(user);
     return res;
+  }
+
+  async updateUser_V2(id: string, object: object) {
+    await this.userRepo.update({ id }, object);
   }
 
   /**
@@ -123,15 +174,15 @@ export class UserService {
   }
 
   /**
-   * Đặt lại refresh token
+   * Đặt lại token
    * @author : Tr4nLa4m (10-11-2022)
    * @param currentToken token
    * @param id Id người dùng
    */
   async setRefreshToken(currentToken: string, id: string) {
     try {
-      const refreshToken = await bcrypt.hash(currentToken, 10);
-      await this.userRepo.update(id, { refreshToken });
+      const token = currentToken;
+      await this.userRepo.update(id, { token });
     } catch (error) {
       throw new HttpException(
         { cause: new Error(error) },
@@ -147,17 +198,14 @@ export class UserService {
    * @param id Id người dùng
    * @returns
    */
-  async getUserIfRefreshTokenValid(refreshToken: string, id: string) {
+  async getUserIfTokenValid(token: string, id: string) {
     try {
       // Lấy người dùng thông qua Id
       const user = await this.getUserById(id);
 
-      const checkRefreshToken = await bcrypt.compare(
-        refreshToken,
-        user.refreshToken,
-      );
+      const checkToken = await bcrypt.compare(token, user.token);
 
-      if (checkRefreshToken) {
+      if (checkToken) {
         return user;
       }
     } catch (error) {
@@ -168,9 +216,14 @@ export class UserService {
     }
   }
 
-  async removeRefreshToken(id: string) {
+  /**
+   * Xoá token của người dùng khi đăng xuất.
+   * @param id id người dùng
+   * @returns
+   */
+  async removeToken(id: string) {
     return this.userRepo.update(id, {
-      refreshToken: null,
+      token: null,
     });
   }
 
@@ -199,7 +252,7 @@ export class UserService {
    */
   async addCoverToQueue(id: string, file: Express.Multer.File) {
     try {
-      this.avatarQueue.add(RESIZING_COVER, {
+      var res = await this.avatarQueue.add(RESIZING_COVER, {
         id,
         file,
       });
@@ -238,7 +291,7 @@ export class UserService {
 
     delete user.email;
     delete user.password;
-    delete user.refreshToken;
+    delete user.token;
 
     return this.userRepo.save(user);
   }
@@ -257,7 +310,7 @@ export class UserService {
     let toUpdate = await this.getUserById(userId);
 
     delete toUpdate.password;
-    delete toUpdate.refreshToken;
+    delete toUpdate.token;
     delete toUpdate.email;
 
     let updated = Object.assign(toUpdate, userData);
@@ -318,50 +371,85 @@ export class UserService {
       .innerJoin(UserEntity, 'blocked', 'block.blockedId = blocked.id')
       .where('block.blockerId = :id', { id: user.id })
       .getRawMany();
-    return blockeds;    
+    return blockeds;
   }
 
+  async setBlock(user: UserEntity, blockedId: string, type: BlockType) {
+    if (user.id === blockedId) {
+      throw new UserValidateException(
+        ResponseCode.CUSTOM('Không thể chặn chính mình', 1004),
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
-async setBlock(user : UserEntity, blockedId : string, type : BlockType){
-  if(user.id === blockedId){
-    throw new UserValidateException(ResponseCode.CUSTOM("Không thể chặn chính mình", 1004), HttpStatus.BAD_REQUEST);
+    const blocked = await this.getUserById(blockedId);
+    if (!blocked) {
+      throw new UserValidateException(
+        ResponseCode.USER_EXISTED,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const userWithBlockeds = await this.userRepo.findOne({
+      where: {
+        id: user.id,
+      },
+      relations: {
+        blockeds: true,
+      },
+    });
+    const blockList = userWithBlockeds.blockeds.map((blockUser) => {
+      return blockUser.blocked.id;
+    });
+    if (type === BlockType.BLOCK) {
+      if (!blockList.includes(blocked.id)) {
+        userWithBlockeds.blockeds.push(
+          this.blockRepo.create({
+            blocked: blocked,
+            blocker: user,
+          }),
+        );
+      } else {
+        this.logger.warn(
+          'setBlock',
+          'Người bị chặn đã tồn tại trong danh sách',
+        );
+      }
+    } else if (type === BlockType.UNBLOCK) {
+      const index = blockList.indexOf(blocked.id);
+      if (index > -1) {
+        userWithBlockeds.blockeds.splice(index, 1);
+      }
+    }
+    const res = await this.userRepo.save(userWithBlockeds);
+    return new CustomResponse(res, true, 'OK');
   }
 
-  const blocked = await this.getUserById(blockedId);
-  if(!blocked){
-    throw new UserValidateException(ResponseCode.USER_EXISTED, HttpStatus.BAD_REQUEST);
-  }
+  /**
+   * Kiểm tra người dùng này có bị chặn hay không
+   * @param checkUserId Id người cần kiểm tra
+   * @param userId Id user
+   * @returns 
+   */
+  async checkIsBlock(checkUserId: string, userId: string) {
+    const userWithBlockeds = await this.userRepo.findOne({
+      where: {
+        id: userId,
+      },
+      relations: {
+        blockeds: true,
+        blockers: true,
+      },
+    });
 
-  const userWithBlockeds = await this.userRepo.findOne({
-    where : {
-      id : user.id
-    },
-    relations : {
-      blockeds : true
-    }
-  });
-  const blockList = userWithBlockeds.blockeds.map((blockUser) => {
-    return blockUser.blocked.id;
-  });
-  if(type === BlockType.BLOCK){
-    if(!blockList.includes(blocked.id)){
-      userWithBlockeds.blockeds.push(this.blockRepo.create({
-        blocked : blocked,
-        blocker : user
-      }))
-    }
-    else{
-      this.logger.warn('setBlock', "Người bị chặn đã tồn tại trong danh sách")
-    }
-  }else if(type === BlockType.UNBLOCK){
-    const index = blockList.indexOf(blocked.id);
-    if(index > -1){
-      userWithBlockeds.blockeds.splice(index, 1);
+    try {
+      return userWithBlockeds.blockeds?.some((blockUser, index) => {
+        return blockUser.blocked.id === checkUserId;
+      });
+    } catch (error) {
+      throw error;
     }
   }
-  const res = await this.userRepo.save(userWithBlockeds);
-  return new CustomResponse(res, true, "OK");
-}
 
   //#endregion
 }

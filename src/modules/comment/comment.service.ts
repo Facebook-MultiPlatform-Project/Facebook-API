@@ -42,7 +42,7 @@ export class CommentService {
     }
 
     // Lấy ra tất cả bình luận của bài đăng.
-    
+    return 1;
   }
 
   /**
@@ -80,8 +80,7 @@ export class CommentService {
     const newComment = this.commentRepo.create({
       user: user,
       post: post,
-      content: createCommentDto.content,
-      commentAnswered: commentAnswered,
+      content: createCommentDto.content
     });
 
     const commentSaved = await this.commentRepo.save(newComment);

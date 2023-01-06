@@ -7,6 +7,7 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ResponseCode } from 'src/utils/codes/response.code';
+import CustomResponse from '../response/response.type';
 
 /**
  * Custom Response
@@ -16,6 +17,7 @@ export interface Response<T> {
   data: T;
   code: number;
   message: string;
+  success : boolean;
 }
 
 /**
@@ -32,11 +34,24 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>>
     return next
       .handle()
       .pipe(
-        map((data) => ({
-          code: ResponseCode.OK.Code,
-          message: ResponseCode.OK.Message_VN,
-          data: data
-        })),
+        map((rawData) => {
+          let code = ResponseCode.OK.Code;
+          let message = ResponseCode.OK.Message_VN;
+          let success = true;
+          let data = rawData;
+          if(rawData instanceof CustomResponse ){
+            code = rawData.code;
+            message = rawData.message;
+            success = rawData.success;
+            data = rawData.data;
+          }
+          return {
+            code,
+            message,
+            success,
+            data
+          }
+        }),
       );
   }
 }
