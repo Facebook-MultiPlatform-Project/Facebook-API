@@ -26,7 +26,7 @@ import PostEntity from './post.entity';
     user: UserEntity;
 
     // ID chủ bài viết
-    @ManyToOne(() => PostEntity, (post) => post.comments )
+    @ManyToOne(() => PostEntity, (post) => post.comments , {onDelete : "CASCADE"})
     post: PostEntity;
   
     // Ngày tạo

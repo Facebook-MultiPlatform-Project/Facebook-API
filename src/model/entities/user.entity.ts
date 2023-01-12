@@ -49,7 +49,7 @@ export class UserEntity extends BaseEntity {
 
   // Email tài khoản
   @Column({
-    type : 'uuid',
+    type : 'string',
     default : null
   })
   uuid: string;

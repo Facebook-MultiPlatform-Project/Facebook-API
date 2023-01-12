@@ -24,7 +24,15 @@ export class MediaEntity extends BaseEntity {
   })
   type: MediaType;
 
-  @ManyToOne(() => PostEntity, (post) => post.medias)
+  // thứ tự của media trong bài viết
+  @Column({default : 0})
+  order : number;
+
+  // trạng thái còn hoạt động (chua bị xoá)
+  @Column({default : true})
+  isActive : boolean;
+
+  @ManyToOne(() => PostEntity, (post) => post.medias, { onDelete : "CASCADE"})
   post: PostEntity;
 }
 

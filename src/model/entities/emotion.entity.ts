@@ -25,7 +25,7 @@ import PostEntity from './post.entity';
 
     
     // Id bài đăng
-    @ManyToOne(() => PostEntity, (post) => post.likes)
+    @ManyToOne(() => PostEntity, (post) => post.likes, {onDelete : "CASCADE"})
     post: PostEntity;
   
     // Ngày tạo
@@ -35,8 +35,6 @@ import PostEntity from './post.entity';
     // Ngày chỉnh sửa
     @Column()
     modifiedDate: Date;
-    newLike: Promise<any>;
-  
     
   }
   

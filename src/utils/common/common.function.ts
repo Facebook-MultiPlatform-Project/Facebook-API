@@ -57,4 +57,14 @@ export class CommonMethods {
     return res;
   };
 
+  /**
+   * Tách chuỗi thành mảng
+   * @param str chuỗi cần tách
+   * @param separator ký tự tách
+   * @returns 
+   */
+  public getArrayValueFromString = (str : string, separator : string) => {
+    return str.split(separator);
+  }
+
 }

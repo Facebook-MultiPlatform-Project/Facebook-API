@@ -40,6 +40,6 @@ export class UserLoginDto {
     type: String,
   })
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   uuid: string;
 }
