@@ -25,7 +25,9 @@ import { CreatePostDto } from './dtos/create-post.dto';
 import { postStorageOptions } from './helpers/post-file-storage';
 import { PostService } from './post.service';
 import { FirebaseService } from '../firebase/firebase.service';
-import { GetPostByIdDto } from './dtos/get_by_id-post.dto';
+import { PostDto } from './dtos/id-post.dto';
+import { EditPostDto } from './dtos/edit-post.dto';
+import { PermissionCode } from './enum/permission-type.enum';
 
 @ApiTags('posts')
 @Controller('posts')
@@ -59,6 +61,32 @@ export class PostController {
   }
 
   /**
+   * API chỉnh sửa một bài viết
+   * @author : Tr4nLa4m (20-11-2022)
+   * @param request request
+   * @param editPostData 
+   * @param files Các file tải lên (nếu có)
+   * @returns 
+   */
+  @Post('edit')
+  @UseGuards(JwtAuthGuard, EmailConfirmGuard)
+  @UseInterceptors(FileFieldsInterceptor(
+    [
+      { name: 'images', maxCount: 4 },
+      { name: 'video', maxCount: 1 },
+    ]
+    , postStorageOptions))
+  async editPost(
+    @Req() request: RequestWithUser,
+    @Body() editPostData: EditPostDto,
+    @UploadedFiles() files: { images?: Express.Multer.File[], video?: Express.Multer.File[] },
+  ) {
+      const user = request.user;
+      await this.postService.checkUserPermission(user, editPostData.postId, PermissionCode.EDIT);
+      return await this.postService.edit(user.id, editPostData, files);
+  }
+
+  /**
    * API lấy các bài post qua id
    * @author : Tr4nLa4m (12-11-2022)
    * @param author Id của tác giả
@@ -70,7 +98,7 @@ export class PostController {
   @UseGuards(JwtAuthGuard, EmailConfirmGuard)
   async getPostById(
     @Req() request: RequestWithUser,
-    @Body() postIdDto : GetPostByIdDto
+    @Body() postIdDto : PostDto
   ) {
     return await this.postService.getPostById(request.user.id, postIdDto.postId);
   }
@@ -104,25 +132,31 @@ export class PostController {
     );
   }
 
-  @Delete('delete-post/:postId')
+  @Post('delete-post')
   @UseGuards(JwtAuthGuard, EmailConfirmGuard)
-  async deletePost(@Param('postId') postId: string) {
-    return this.postService.deletePost(postId);
+  async deletePost(
+    @Req() request: RequestWithUser,
+    @Body() postIdDto : PostDto
+  ) {
+    const user = request.user;
+    await this.postService.checkUserPermission(user, postIdDto.postId, PermissionCode.DELETE);
+    return await this.postService.deletePost(postIdDto.postId);
   }
 
   /**
-   * API thích bài viết
+   * API thích/ bỏ thích bài viết
    * @author : Tr4nLa4m (20-11-2022)
    * @param request request được gửi đến
    * @param postId Id bài đăng
    * @returns 
    */
-  @Put('like-post/:postId')
+  @Post('like-post')
   @UseGuards(JwtAuthGuard, EmailConfirmGuard)
   async likePost(
     @Req() request: RequestWithUser,
-    @Param('postId') postId : string){
-      const res = await this.postService.likePost(request.user.id, postId);
+    @Body() postIdDto : PostDto
+    ){
+      const res = await this.postService.likePost(request.user, postIdDto.postId);
       return res;
   }
 }

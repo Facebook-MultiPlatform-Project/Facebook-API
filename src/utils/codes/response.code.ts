@@ -150,5 +150,11 @@ export const ResponseCode = {
         Code: 1013,
         Message_VN : "Tài khoản đã được xác thực",
         Message_EN : "User is confirmed"
+    },
+
+    USER_HAVE_NO_PERMISSION: {
+        Code: 1014,
+        Message_VN : "Người dùng không có quyền thực hiện",
+        Message_EN : "User have no permission"
     }
 }

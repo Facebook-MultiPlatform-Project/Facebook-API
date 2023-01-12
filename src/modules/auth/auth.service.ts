@@ -72,6 +72,9 @@ export class AuthService {
    */
   public async validateUserAndPassword(email: string, rawPassword: string) {
     const user = await this.userService.getUserByEmail(email);
+    if(!user){
+      throw new UserValidateException(ResponseCode.USER_EXISTED, HttpStatus.BAD_REQUEST);
+    }
     await this.checkPassword(rawPassword, user.password);
     user.password = undefined;
     return user;
@@ -205,8 +208,7 @@ export class AuthService {
 
   public getCookieForLogOut() {
     return [
-      'Authentication=; HttpOnly; Path=/; Max-Age=0',
-      'Refresh=; HttpOnly; Path=/; Max-Age=0',
+      'Authentication=; HttpOnly; Path=/; Max-Age=0'
     ];
   }
 
